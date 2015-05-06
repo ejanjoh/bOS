@@ -5,6 +5,10 @@
 #       Created:    2013-10-11
 #       Updated:    2015-05-01
 #
+#       bOS version history mapped on changes in this file:
+#       ---------------------------------------------------
+#       ver1:    Adjusted for bOS
+#
 ################################################################################
 
 # Toolchain:
@@ -51,7 +55,8 @@ OBJ                 += $(patsubst $(C_FILES_GEN)%.c,$(BUILD_FILES)%.o,$(wildcard
 # Build flags:
 #DEPENDFLAGS        := -MD -MP                                      <--- No
 DEPENDFLAGS         :=
-INCLUDES            := -I $(HEADER_FILES_HW_DEP) $(HEADER_FILES_GEN)
+INCLUDES            := -I $(HEADER_FILES_HW_DEP)
+INCLUDES            += -I $(HEADER_FILES_GEN)
 #BASEFLAGS          := -O2 -nostdlib -pedantic -pedantic-errors     <--- No
 BASEFLAGS           := -nostdlib
 BASEFLAGS           += -nostartfiles -ffreestanding -nodefaultlibs

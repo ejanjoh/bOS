@@ -41,6 +41,7 @@
 
 > ## Revision History
 > 
-> ver 1: Initial file structure created, makefile and linker file for Beaglebone Black created.
+> - ver 1: Initial file structure created, makefile and linker file for Beaglebone Black added.
 >
+> - ver 2: Makefile and linker file for Raspberry Pi added.
 >
