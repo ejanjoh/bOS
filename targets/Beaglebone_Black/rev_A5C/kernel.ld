@@ -5,6 +5,10 @@
 *   Date:           2013-10-11
 *   Updated:        2014-01-02
 *
+*       Project:    bOS/Beaglebone Black (rev A5C)
+*       File name:  kernel.ld
+*
+*
 *   bOS version history mapped on changes in this file:
 *   ---------------------------------------------------
 *

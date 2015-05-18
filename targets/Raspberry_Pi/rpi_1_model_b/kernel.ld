@@ -5,6 +5,10 @@
 *       Created:    2013-06-13
 *       Updated:    2015-05-05
 *
+*       Project:    bOS/Raspberry Pi (rev rpi_1_model_b)
+*       File name:  kernel.ld
+*
+*
 *       bOS version history mapped on changes in this file:
 *       ---------------------------------------------------
 *       ver2:    Adjusted for bOS

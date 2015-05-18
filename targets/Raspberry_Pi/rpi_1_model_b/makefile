@@ -3,11 +3,16 @@
 #       Autor:      Jan Johansson (ejanjoh)
 #       Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
 #       Created:    2013-04-09
-#       Updated:    2015-05-04
+#       Updated:    2015-05-07 (ver 3)
+#
+#       Project:    bOS/Raspberry Pi (rev rpi_1_model_b)
+#       File name:  makefile
+#
 #
 #       bOS version history mapped on changes in this file:
 #       ---------------------------------------------------
-#       ver2:    Adjusted for bOS
+#       ver 2:      Adjusted for bOS.
+#       ver 3       Adjusted so header files could be attached to assembly files.
 #
 ################################################################################
 
@@ -47,7 +52,7 @@ LIST                = kernel.list
 MAP                 = kernel.map
 ELF                 = kernel.elf
 HEX                 = kernel.hexdump.txt
-OBJ                 := $(patsubst $(ASM_FILES_HW_DEP)%.s,$(BUILD_FILES)%.o,$(wildcard $(ASM_FILES_HW_DEP)*.s))
+OBJ                 := $(patsubst $(ASM_FILES_HW_DEP)%.S,$(BUILD_FILES)%.o,$(wildcard $(ASM_FILES_HW_DEP)*.S))
 OBJ                 += $(patsubst $(C_FILES_HW_DEP)%.c,$(BUILD_FILES)%.o,$(wildcard $(C_FILES_HW_DEP)*.c))
 OBJ                 += $(patsubst $(C_FILES_GEN)%.c,$(BUILD_FILES)%.o,$(wildcard $(C_FILES_GEN)*.c))
 
@@ -55,8 +60,8 @@ OBJ                 += $(patsubst $(C_FILES_GEN)%.c,$(BUILD_FILES)%.o,$(wildcard
 #DEPENDFLAGS := -MD -MP                                                 <--- No
 INCLUDES    := -I $(HEADER_FILES_HW_DEP)
 INCLUDES    += -I $(HEADER_FILES_GEN)
-#BASEFLAGS   := -O2 -nostdlib -pedantic -pedantic-errors                <--- No
-BASEFLAGS   := -nostdlib
+BASEFLAGS   := -O2 -nostdlib -pedantic -pedantic-errors
+#BASEFLAGS   := -nostdlib                                               <--- No
 BASEFLAGS   += -nostartfiles -ffreestanding -nodefaultlibs
 BASEFLAGS   += -fno-builtin -fomit-frame-pointer -mcpu=arm1176jzf-s
 WARNFLAGS   := -Wall -Wextra -Wshadow -Wcast-align -Wwrite-strings
@@ -108,7 +113,7 @@ $(BUILD_FILES)%.o : $(C_FILES_GEN)%.c
 	-mv    $(TARGET)*.s $(EXTRA)
 
 # Rule to assembly the asm-files:
-$(BUILD_FILES)%.o : $(ASM_FILES_HW_DEP)%.s
+$(BUILD_FILES)%.o : $(ASM_FILES_HW_DEP)%.S
 	$(ARM_CC) $(ASFLAGS) -c $< -o $@
 	#$(ARM_AS) -c $< -o $@
 

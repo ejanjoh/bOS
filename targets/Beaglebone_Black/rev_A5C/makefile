@@ -5,6 +5,10 @@
 #       Created:    2013-10-11
 #       Updated:    2015-05-01
 #
+#       Project:    bOS/Beaglebone Black (rev A5C)
+#       File name:  makefile
+#
+#
 #       bOS version history mapped on changes in this file:
 #       ---------------------------------------------------
 #       ver1:    Adjusted for bOS
