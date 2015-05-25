@@ -12,6 +12,8 @@
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
  *      ver 3       Created
+ *      ver 5       Changed some function names to more common ones, even if
+ *                  the interface differs somewhat.
  *
  *
  *      Reference: See hardware_system.h
@@ -22,7 +24,7 @@
 #define IO_H_
 
 
-/* void putchar(const char ch)
+/* void putc(const char ch)
  *
  * in:          ch:         character to be put transmitted to the out stream
  *
@@ -36,10 +38,10 @@
  *
  * note:        None
  */
-void putchar(const char ch);
+void putc(const char ch);
 
 
-/* void uart_putstring(const char *str, const uint32_t len)
+/* void uart_puts(const char *str, const uint32_t len)
  *
  * in:          str:        null terminated string of characters
  *              len:        max length of the string above
@@ -54,7 +56,7 @@ void putchar(const char ch);
  *
  * note:        None
  */
-void uart_putstring(const char *str, const uint32_t len);
+void uart_puts(const char *str, const uint32_t len);
 
 
 #endif /* IO_H_ */

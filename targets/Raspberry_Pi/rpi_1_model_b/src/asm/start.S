@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2015-05-07
- *      Updated:
+ *      Updated:    2015-05-19
  *
  *      Project:    bOS/Raspberry Pi (rev rpi_1_model_b)
  *      File name:  start.S
@@ -12,6 +12,7 @@
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
  *      ver 3       File created
+ *      ver 5       _deadloop updated
  *
  *      Reference: See hardware_system.h
  *
@@ -203,8 +204,11 @@ reset_handl$:
 
         @ Perform other initializations...
         @ bl    init
-
-        @ Cheerio and thanks for the fish...
+        
+         @ Branch off to main and do not return; cheerio and thanks for the fish...
+        .section .text
+        .code 32
+        .align 2
         @ b     main
 
 
@@ -221,7 +225,11 @@ reset_handl$:
         .align 2
         .global _deadloop
 _deadloop:
-        b       _deadloop
+        @ Turn the ACT led off to indicate an error or issue that hang the system (e.g. an assert)
+        mov     r0, #GPIO_PIN_16
+        bl      gpio_output_low                 @ turn off the ACT led
+10:
+        b       10b
 
 @ Handle the below in other files or an other way... TBC
 undef_instr_handl$:

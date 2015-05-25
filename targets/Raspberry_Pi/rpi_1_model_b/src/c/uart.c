@@ -12,6 +12,8 @@
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
  *      ver 3       Updated and copied to bOS
+ *      ver 5       Updated function names
+ *                  Adjusted end of line format
  *
  *
  *      Reference: See hardware_system.h
@@ -86,7 +88,7 @@ void uart_init(void)
 }
 
 // Get the first character in the PL011 UARTs FIFO
-char uart_getchar(void)
+char uart_getc(void)
 {
     volatile uint32_t *pFlagReg = (volatile uint32_t *) (UART_BASE + UART_OFFSET_FR);
     volatile uint32_t *pDataReg = (volatile uint32_t *) (UART_BASE +  UART_OFFSET_DR);
@@ -98,7 +100,7 @@ char uart_getchar(void)
 }
 
 // Put a character in the PL011 UARTs FIFO for transmit
-void uart_putchar(const char ch)
+void uart_putc(const char ch)
 {
     volatile uint32_t *pFlagReg = (volatile uint32_t *) (UART_BASE + UART_OFFSET_FR);
     volatile uint32_t *pDataReg = (volatile uint32_t *) (UART_BASE +  UART_OFFSET_DR);
@@ -112,17 +114,13 @@ void uart_putchar(const char ch)
 
 
 // Put a null terminated string at the PL011 UARTs FIFO for transmit
-void uart_putstring(const char *str, const uint32_t len)
+void uart_puts(const char *str, const uint32_t len)
 {
     const char * pStr = str;
     uint32_t n = 0;
 
     while (('\0' != *pStr) && (n < len)) {
-        if ('\n' == *pStr) {
-            uart_putchar('\r');
-            uart_putchar('\n');
-        }
-        else uart_putchar(*pStr);
+        uart_putc(*pStr);                    // remove this function call to improve performance
         pStr++;
         n++;
     }

@@ -3,9 +3,9 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2015-05-09
- *      Updated:    2015-05-19
+ *      Updated:    2015-05-20
  *
- *      Project:    bOS/Raspberry Pi (rev rpi_1_model_b)
+ *      Project:    bOS/bOS/Beaglebone Black (rev A5C)
  *      File name:  misc_asm.S
  *
  *
@@ -13,6 +13,7 @@
  *      ---------------------------------------------------
  *      ver 3       File created
  *      ver 5       __aeabi_uidiv added
+ *                  Copied to BBB
  *
  *      Reference: See hardware_system.h
  *

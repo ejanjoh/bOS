@@ -5,14 +5,13 @@
  *      Created:    2015-05-09
  *      Updated:    
  *
- *      Project:    bOS/Raspberry Pi (rev rpi_1_model_b)
+ *      Project:    bOS/Beaglebone Black (rev A5C)
  *      File name:  uart.h
  *
  *
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
- *      ver 3       Updated and copied to bOS
- *      ver 5       Updated function names
+ *      ver 5       Updated and copied to bOS
  *
  *
  *      Reference: See hardware_system.h
@@ -24,7 +23,6 @@
 
 #include <stdint.h>
 
-void uart_init(void);
 
 // Do not use this functions directly, use the io functions in io.h instead...
 char uart_getc(void);

@@ -52,7 +52,7 @@ MAP                 = kernel.map
 ELF                 = kernel.elf
 HEX                 = kernel.hexdump.txt
 MLO                 = MLO
-OBJ                 := $(patsubst $(ASM_FILES_HW_DEP)%.s,$(BUILD_FILES)%.o,$(wildcard $(ASM_FILES_HW_DEP)*.s))
+OBJ                 := $(patsubst $(ASM_FILES_HW_DEP)%.S,$(BUILD_FILES)%.o,$(wildcard $(ASM_FILES_HW_DEP)*.S))
 OBJ                 += $(patsubst $(C_FILES_HW_DEP)%.c,$(BUILD_FILES)%.o,$(wildcard $(C_FILES_HW_DEP)*.c))
 OBJ                 += $(patsubst $(C_FILES_GEN)%.c,$(BUILD_FILES)%.o,$(wildcard $(C_FILES_GEN)*.c))
 
@@ -61,8 +61,8 @@ OBJ                 += $(patsubst $(C_FILES_GEN)%.c,$(BUILD_FILES)%.o,$(wildcard
 DEPENDFLAGS         :=
 INCLUDES            := -I $(HEADER_FILES_HW_DEP)
 INCLUDES            += -I $(HEADER_FILES_GEN)
-#BASEFLAGS          := -O2 -nostdlib -pedantic -pedantic-errors     <--- No
-BASEFLAGS           := -nostdlib
+BASEFLAGS          := -O2 -nostdlib -pedantic -pedantic-errors
+#BASEFLAGS           := -nostdlib                                   <--- No
 BASEFLAGS           += -nostartfiles -ffreestanding -nodefaultlibs
 BASEFLAGS           += -fno-builtin -fomit-frame-pointer -mcpu=cortex-a8
 WARNFLAGS           := -Wall -Wextra -Wshadow -Wcast-align -Wwrite-strings
@@ -116,7 +116,7 @@ $(BUILD_FILES)%.o : $(C_FILES_GEN)%.c
 	-mv    $(TARGET)*.s $(EXTRA)
 
 # Rule to assembly the asm-files:
-$(BUILD_FILES)%.o : $(ASM_FILES_HW_DEP)%.s
+$(BUILD_FILES)%.o : $(ASM_FILES_HW_DEP)%.S
 	$(ARM_CC) $(ASFLAGS) -c $< -o $@
 	#$(ARM_AS) -c $< -o $@
 
