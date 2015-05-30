@@ -192,12 +192,6 @@ _start:
         bl      setup_default_io_config
 
 
-
-
-
-
-
-
         /* At this point one usually do a lot of configurations to optimize the system, to increase the
          * performance and so on. However we relay on that the ROM code is setting up most of the thing 
          * needed in a somewhat proper way (see reference 1). If we end up in something that just must 
@@ -208,11 +202,8 @@ _start:
         @ Perform other initializations...
         @ bl    init
         
-         @ Branch off to main and do not return; cheerio and thanks for the fish...
-        .section .text
-        .code 32
-        .align 2
-        @ b     main
+        @ Branch off to main and do not return; cheerio and thanks for the fish...
+        b       main
 
 
         /*********************************************************************** 
@@ -229,7 +220,8 @@ _start:
         .global _deadloop
 _deadloop:
         @ Turn off the led´s
-        mov     r0, #GPIO1_ALL_USR_LEDS_BM
+        @mov     r0, #GPIO1_ALL_USR_LEDS_BM
+        mov     r0, #GPIO1_21_USR_LED_0_BM
         bl      gpio_usrled_off
 10:
         b       10b

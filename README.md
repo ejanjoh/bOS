@@ -58,5 +58,8 @@
 >	- [Beaglebone Black] the user leds has been configured
 >	- [Beaglebone Black] GPIO and UART for serial communication
 >	- [Beaglebone Black] __aeabi_uidiv added to handle unsigned integer division
+> - ver 6 Added:
+>	- [bOS] Enabled formated output by printf(...)
+>	- [bOS] Assert and warnings, (files assert.t and log.h)
 >	  
 >		

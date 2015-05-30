@@ -178,7 +178,7 @@ SECTIONS {
        some "high level" initialization not done in the .init section) */
     . = . + 4;              /* add a slack... */
     . = ALIGN(0x4);
-    _CPY_TO_L3_SDRAM_START = .;
+    /*_CPY_TO_L3_SDRAM_START = .;*/
     _text_start = .;
     .text : {
         *(.text.startup)
@@ -216,7 +216,7 @@ SECTIONS {
     }
     _data_end = .;
     
-    _CPY_TO_L3_SDRAM_END = .;
+    /*_CPY_TO_L3_SDRAM_END = .;*/
 
     /* Collect in-sections not trapped above */
     . = . + 4;              /* add a slack... */

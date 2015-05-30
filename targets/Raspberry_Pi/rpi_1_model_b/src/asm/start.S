@@ -205,11 +205,8 @@ reset_handl$:
         @ Perform other initializations...
         @ bl    init
         
-         @ Branch off to main and do not return; cheerio and thanks for the fish...
-        .section .text
-        .code 32
-        .align 2
-        @ b     main
+        @ Branch off to main and do not return; cheerio and thanks for the fish...
+        b       main
 
 
         /*********************************************************************** 

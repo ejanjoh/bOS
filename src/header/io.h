@@ -14,6 +14,8 @@
  *      ver 3       Created
  *      ver 5       Changed some function names to more common ones, even if
  *                  the interface differs somewhat.
+ *      ver 6       Corrected the definition of putc and puts.
+ *                  Added formated output by printf(...)
  *
  *
  *      Reference: See hardware_system.h
@@ -23,6 +25,8 @@
 #ifndef IO_H_
 #define IO_H_
 
+#include <stdarg.h>
+#include <stdint.h>
 
 /* void putc(const char ch)
  *
@@ -38,10 +42,10 @@
  *
  * note:        None
  */
-void putc(const char ch);
+extern void (* putc)(const char ch);
 
 
-/* void uart_puts(const char *str, const uint32_t len)
+/* void puts(const char *str, const uint32_t len)
  *
  * in:          str:        null terminated string of characters
  *              len:        max length of the string above
@@ -56,7 +60,34 @@ void putc(const char ch);
  *
  * note:        None
  */
-void uart_puts(const char *str, const uint32_t len);
+extern void (* puts)(const char *str, const uint32_t len);
 
+
+/* int32_t printf(const uint32_t len, const char *format, ...)
+ *
+ * in:          len:        max length of the string
+ *              format:     string that could include format specifiers
+ *
+ *              format specifiers:
+ *                  %u  unsigned decimal integer
+ *                  %x  unsigned hexadecimal integer (lower case)
+ *                  %p  pointer address
+ *                  %c  character
+ *                  %s  string of characters
+ *                  %%  %
+ *
+ * out:         error on negative else the number ouf chars printed
+ *
+ * description: Writes the string pointed by format to the standard output.
+ *              If format includes format specifiers (subsequences beginning 
+ *              with %), the additional arguments following format are formatted 
+ *              and inserted in the resulting string replacing their respective
+ *              specifiers.
+ *
+ * depend:      None
+ *
+ * note:        None
+ */
+int32_t printf(const uint32_t len, const char *format, ...);
 
 #endif /* IO_H_ */
