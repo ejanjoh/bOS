@@ -36,9 +36,9 @@ gpio_enable:
         movt    r0, #:upper16:GPIO1_BASE
         
         @ --- GPIO1_21 to GPIO1_24 - the user LEDs usr0 to usr3
-        ldr     r1, [r0, #GPIO_OE]
-        bic     r1, r1, #GPIO1_ALL_USR_LEDS_BM
-        str     r1, [r0, #GPIO_OE]
+        ldr     r1, [r0, #GPIO_OE_OFFSET]
+        bic     r1, r1, #GPIO1_ALL_USR_LEDS_MASK
+        str     r1, [r0, #GPIO_OE_OFFSET]
 
         mov     pc, lr
 
@@ -49,11 +49,11 @@ gpio_enable:
          *  Turn on one or more user leds
          *
          *  in: r0:
-         *      - GPIO1_21_USR_LED_0_BM
-         *      - GPIO1_22_USR_LED_1_BM
-         *      - GPIO1_23_USR_LED_2_BM
-         *      - GPIO1_24_USR_LED_3_BM
-         *      - GPIO1_ALL_USR_LEDS_BM
+         *      - GPIO1_21_USR_LED_0_MASK
+         *      - GPIO1_22_USR_LED_1_MASK
+         *      - GPIO1_23_USR_LED_2_MASK
+         *      - GPIO1_24_USR_LED_3_MASK
+         *      - GPIO1_ALL_USR_LEDS_MASK
          *
          * C prototype: void gpio_usrled_on(uint32_t led)
          **********************************************************************/
@@ -71,7 +71,7 @@ gpio_usrled_on:
         cmp     r0, #0x0
         beq     100f
         
-        str     r0, [r1, #GPIO_SETDATAOUT]
+        str     r0, [r1, #GPIO_SETDATAOUT_OFFSET]
 100:
         mov     pc, lr
 
@@ -104,7 +104,7 @@ gpio_usrled_off:
         cmp     r0, #0x0
         beq     100f
         
-        str     r0, [r1, #GPIO_CLEARDATAOUT]
+        str     r0, [r1, #GPIO_CLEARDATAOUT_OFFSET]
 100:
         mov     pc, lr
 
@@ -127,7 +127,7 @@ gpio1_x_setlow:
         movt    r1, #:upper16:GPIO1_BASE
         mov     r2, #1
         lsl     r2, r2, r0
-        str     r2, [r1, #GPIO_CLEARDATAOUT]
+        str     r2, [r1, #GPIO_CLEARDATAOUT_OFFSET]
 
         mov     pc, lr
 
@@ -150,7 +150,7 @@ gpio1_x_sethigh:
         movt    r1, #:upper16:GPIO1_BASE
         mov     r2, #1
         lsl     r2, r2, r0
-        str     r2, [r1, #GPIO_SETDATAOUT]
+        str     r2, [r1, #GPIO_SETDATAOUT_OFFSET]
 
         mov     pc, lr
 

@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2015-05-20 (ver 5)
- *      Updated:    
+ *      Updated:    2015-06-27 (ver 7)
  *
  *      Project:    bOS/Beaglebone Black (rev A5C)
  *      File name:  hardware_system.h
@@ -12,6 +12,8 @@
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
  *      ver 5       File created
+ *      ver 7       Define endings has been changed
+ *                  Added support to handle context switch
  *
  *
  *      Reference:
@@ -26,6 +28,28 @@
  
 #ifndef HARDWARE_SYSTEM_H_
 #define HARDWARE_SYSTEM_H_
+
+
+// Metadata
+#define     ARM32
+#define     ARMv7
+
+// Access hardware registers, in C only...
+#define GET32(addr) (*(volatile unsigned int *) (addr))
+#define SET32(addr, val) (*((volatile unsigned int *) (addr)) = ((unsigned int) (val)))
+
+
+
+// define _endings using registers
+// _REG                 - the address to a hardware register
+// _BASE                - the base address to a hardware register
+// _OFFSET              - the offset to the base address in a hardware register
+
+// define _endings that is not registers
+// _MASK                - the ones defining the bit mask to manipulate hardware registers
+// _PAT                 - a pattern or number to be written to a hardware register
+
+
 
 /*
  *  ARM Modes              Encoding    Security state      Privilege level
@@ -79,7 +103,6 @@
  * FIQ Interrupt              FIQ             F = 1, I = 1
  */
 
-// Bit masks and patterns to be moved to local files if possible...
 
 // ARM processor (ARM7) system modes:
 // - Operating modes...
@@ -93,88 +116,137 @@
 #define     UND32_MODE                          0x1B            // Undefined mode
 
 // System addresses
-#define     LOAD_ADDR_UNDEF_INSTR_EXC           0x4030CE24      // Jump address undefined instruction
-#define     LOAD_ADDR_SVC_EXC                   0x4030CE28      // Jump address supervisor call
-#define     LOAD_ADDR_PREF_ABRT_EXC             0x4030CE2C      // Jump address prefetch abort
-#define     LOAD_ADDR_DATA_ABRT_EXC             0x4030CE30      // Jump address data abort
-#define     LOAD_ADDR_IRQ_INTR                  0x4030CE38      // Jump address irq
-#define     LOAD_ADDR_FIQ_INTR                  0x4030CE3C      // Jump address fiq
+#define     LOAD_ADDR_UNDEF_INSTR_EXC_REG       0x4030CE24      // Jump address undefined instruction
+#define     LOAD_ADDR_SVC_EXC_REG               0x4030CE28      // Jump address supervisor call
+#define     LOAD_ADDR_PREF_ABRT_EXC_REG         0x4030CE2C      // Jump address prefetch abort
+#define     LOAD_ADDR_DATA_ABRT_EXC_REG         0x4030CE30      // Jump address data abort
+#define     LOAD_ADDR_IRQ_INTR_REG              0x4030CE38      // Jump address irq
+#define     LOAD_ADDR_FIQ_INTR_REG              0x4030CE3C      // Jump address fiq
 
-// Bit Masks
-#define     CPSR_SYSTEM_MODE_BM                 0x1F            // CPSR M[4:0]
+#define     CPSR_SYSTEM_MODE_MASK               0x1F            // CPSR M[4:0]
+#define     CPSR_IRQ_MASK                       0x80            // Processor Status Register - IRQ bit
+#define     CPSR_FIQ_MASK                       0x40            // Processor Status Register - FIQ bit
 
-#define     CTRL_MODE_PULLUP_PULLDOWN_BM        (1 << 3)        // Control Module pullup/pulldown
-#define     CTRL_MODE_RECEIVER_BM               (1 << 5)        // Control Module receiver
+#define     STACK_WATERMARK_PAT                 0xFF00FF00
+#define     HEAP_WATERMARK_PAT                  0xFF00FF00
 
-#define     GPIO1_21_USR_LED_0_BM               (1 << 21)
-#define     GPIO1_22_USR_LED_1_BM               (1 << 22)
-#define     GPIO1_23_USR_LED_2_BM               (1 << 23)
-#define     GPIO1_24_USR_LED_3_BM               (1 << 24)
-#define     GPIO1_ALL_USR_LEDS_BM               ((1 << 21) | (1 << 22) | (1 << 23) | (1 << 24))
 
-#define     CM_PER_FUNCT_INTRFC_CLCK_BM         0x40002
-#define     WKUP_FUNCT_INTRFC_CLCK_BM           0x2
 
-#define     UART_SYSC_SOFTRESET_BM              0x02
-#define     UART_SYSS_RESETDONE_BM              0x01
-#define     UART_REG_CONFIG_MODE_A_BM           0x80
-#define     UART_REG_CONFIG_MODE_B_BM           0xBF
-#define     UART_REGISTER_OPERATIONAL_MODE_BM   0x00
-#define     UART_NO_DMA_NOR_FIFO_BM             0x00
-#define     UART_MDR1_MODE_SELECT_BM            0x07
-#define     UART_IER_CLEAR_BM                   0x00
-#define     UART_DLL_CLOCK_LSB_BM               0x1A
-#define     UART_DLH_CLOCK_MSB_BM               0x00
-#define     UART_IER_INTERRUPT_DISABLED_BM      0x00
-#define     UART_LCR_8_BIT_CHAR_LENGTH_BM       0x03
-#define     UART_LCR_1_STOP_BIT_BM              (0x01 << 2)
-#define     UART_EFR_ENHANCED_EN_BM             (0x1 << 4)
-#define     UART_MCR_TCR_TLR_BM                 (0x1 << 6)
-#define     UART_LSR_UART_RXFIFOE               0x01
-#define     UART_LSR_UART_TXFIFOE               0x20
+// Peripherals...
 
-// Patterns
-#define     STACK_WATERMARK                     0xFF00FF00
-#define     HEAP_WATERMARK                      0xFF00FF00
+// Interrupt Control Module (see chapter 6 in TI Reference Manual AM335x Cortex A8 Microprocessors)
+#define     INTC_BASE                           0x48200000
+#define     INTC_SIR_IRQ_OFFSET                 0x40
+#define     INTC_CONTROL_OFFSET                 0x48
+#define     INTC_MIR_CLEAR2_OFFSET              0xC8
+#define     INTC_ILR68_OFFSET                   0x210
 
-// Peripherals
+#define     INTC_FIQ_IRQ_MASK                   0x01
+#define     INTC_MIR2_MASK                      (0x01 << 4)         // TIMER2
+#define     INTC_ACTIVEIRQ_MASK                 0x7F
+#define     INTC_NEW_IRQ_AGR_MASK               0x01
+
+#define     INTC_INT_NUMBER_TIMER2_PAT          68                  // the interrupt number for timer 2
+#define     INTC_PRIO_0_PAT                     0x00                 // highest irq prio
+
+
+
+// Clock Module registers (see chapter 8 in TI Reference Manual AM335x Cortex A8 Microprocessors)
+#define     CM_PER_BASE                         0x44E00000      // Clock Module Peripheral Registers
+#define     CM_WKUP_BASE                        0x44E00400      // Clock Module Wakeup Registers
+#define     CM_DPLL_BASE                        0x44E00500      // Clock Module PLL Registers
+#define     CM_PER_L4LS_CLKCTRL_OFFSET          0x60
+#define     CM_PER_TIMER2_GCLK_OFFSET           0x70
+#define     CM_PER_GPIO1_CLKCTRL_OFFSET         0xAC
+#define     CM_WKUP_UART0_CLKCTRL_OFFSET        0xB4
+#define     CM_DPLL_CLKSEL_TIMER2_CLK_OFFSET    0x08
+
+#define     CM_PER_FUNCT_INTRFC_CLCK_MASK       0x40002
+#define     CM_PER_CLKCTRL_ENABLE_MASK          0x02
+#define     CM_WKUP_FUNCT_INTRFC_CLCK_MASK      0x02
+#define     CM_DPLL_CLKSEL_TIMER2_CLK_CLKSEL_CLK_M_OSC_MASK     0x01
+
+
 
 // Control Module (see chapter 9 in TI Reference Manual AM335x Cortex A8 Microprocessors)
-#define     CTRL_MOD_BASE                       0x44E10000
-#define     CTRL_MOD_OFFSET_CONF_UART0_RXD      0x970
-#define     CTRL_MOD_OFFSET_CONF_UART0_TXD      0x974
+#define     CTRL_MOD_BASE                               0x44E10000
+#define     CTRL_MOD_OFFSET_CONF_UART0_RXD_OFFSET       0x970
+#define     CTRL_MOD_OFFSET_CONF_UART0_TXD_OFFSET       0x974
+
+#define     CTRL_MODE_PULLUP_PULLDOWN_MASK      (1 << 3)        // Control Module pullup/pulldown
+#define     CTRL_MODE_RECEIVER_MASK             (1 << 5)        // Control Module receiver
+
+
+
+// UART registers ( see chapter 19 in TI Reference Manual AM335x Cortex A8 Microprocessors)
+#define     UART0_BASE                          0x44E09000
+#define     UART_THR_OFFSET                     0x00
+#define     UART_RHR_OFFSET                     0x00
+#define     UART_DLL_OFFSET                     0x00
+#define     UART_DLH_OFFSET                     0x04
+#define     UART_IER_UART_OFFSET                0x04
+#define     UART_EFR_OFFSET                     0x08
+#define     UART_FCR_OFFSET                     0x08
+#define     UART_LCR_OFFSET                     0x0C
+#define     UART_MCR_OFFSET                     0x10
+#define     UART_LSR_UART_OFFSET                0x14
+#define     UART_MDR1_OFFSET                    0x20
+#define     UART_SYSC_OFFSET                    0x54
+#define     UART_SYSS_OFFSET                    0x58
+
+#define     UART_SYSC_SOFTRESET_MASK            0x02
+#define     UART_SYSS_RESETDONE_MASK            0x01
+#define     UART_REG_CONFIG_MODE_A_MASK         0x80
+#define     UART_REG_CONFIG_MODE_B_MASK         0xBF
+#define     UART_REGISTER_OPERATIONAL_MODE_MASK 0x00
+#define     UART_NO_DMA_NOR_FIFO_MASK           0x00
+#define     UART_MDR1_MODE_SELECT_MASK          0x07
+#define     UART_IER_CLEAR_MASK                 0x00
+#define     UART_DLL_CLOCK_LSB_MASK             0x1A
+#define     UART_DLH_CLOCK_MSB_MASK             0x00
+#define     UART_IER_INTERRUPT_DISABLED_MASK    0x00
+#define     UART_LCR_8_BIT_CHAR_LENGTH_MASK     0x03
+#define     UART_LCR_1_STOP_BIT_MASK            (0x01 << 2)
+#define     UART_EFR_ENHANCED_EN_MASK           (0x1 << 4)
+#define     UART_MCR_TCR_TLR_MASK               (0x1 << 6)
+#define     UART_LSR_UART_RXFIFOE_MASK          0x01
+#define     UART_LSR_UART_TXFIFOE_MASK          0x20
+
+
+
+// Timer registers (see chapter 20 in TI Reference Manual AM335x Cortex A8 Microprocessors)
+#define     DM_TIMER2_BASE                      0x48040000
+#define     TIMER_IRQSTATUS_OFFSET              0x28                // Pending and clear interrupt
+#define     TIMER_IRQENABLE_SET_OFFSET          0x2C                // Enable interrupt
+#define     TIMER_TCLR_OFFSET                   0x38                // Timer Control Register
+#define     TIMER_TCRR_OFFSET                   0x3C                // Timer Counter Register
+#define     TIMER_TMAR_OFFSET                   0x4C                // Timer match register
+
+#define     TIMER_IRQ_ENABLE_FOR_MATCH_MASK     0x01
+#define     TCLR_START_VALUE_MASK               (0x01 << 0 | 0x01 << 6)
+#define     TIMER_IRQSTATUS_MAT_IT_FLAG_MASK    0x01
+
+#define     SYS_TIMER_INTR_INTERVAL_PAT         0x1700000           // The time between two interrupts
+#define     TCRR_INIT_VALUE_PAT                 0x00
+
+
 
 // GPIO (see chapter 25 in TI Reference Manual AM335x Cortex A8 Microprocessors)
 #define     GPIO0_BASE                          0x44E07000
 #define     GPIO1_BASE                          0x4804C000
 #define     GPIO2_BASE                          0x481AC000
 #define     GPIO3_BASE                          0x481AE000
-#define     GPIO_OE                             0x134
-#define     GPIO_CLEARDATAOUT                   0x190
-#define     GPIO_SETDATAOUT                     0x194
+#define     GPIO_OE_OFFSET                      0x134
+#define     GPIO_CLEARDATAOUT_OFFSET            0x190
+#define     GPIO_SETDATAOUT_OFFSET              0x194
 
-// Clock Module registers (see chapter 8 in TI Reference Manual AM335x Cortex A8 Microprocessors)
-#define     CM_PER_BASE                         0x44E00000      @ Clock Module Peripheral Registers
-#define     CM_WKUP_BASE                        0x44E00400      @ Clock Module Wakeup Registers
-#define     CM_PER_GPIO1_CLKCTRL                0xAC
-#define     CM_WKUP_UART0_CLKCTRL               0xB4
+#define     GPIO1_21_USR_LED_0_MASK             (1 << 21)
+#define     GPIO1_22_USR_LED_1_MASK             (1 << 22)
+#define     GPIO1_23_USR_LED_2_MASK             (1 << 23)
+#define     GPIO1_24_USR_LED_3_MASK             (1 << 24)
+#define     GPIO1_ALL_USR_LEDS_MASK             ((1 << 21) | (1 << 22) | (1 << 23) | (1 << 24))
 
-// UART registers ( see chapter 19 in TI Reference Manual AM335x Cortex A8 Microprocessors)
-#define     UART0_BASE                          0x44E09000
 
-#define     UART_THR                            0x00
-#define     UART_RHR                            0x00
-#define     UART_DLL                            0x00
-#define     UART_DLH                            0x04
-#define     UART_IER_UART                       0x04
-#define     UART_EFR                            0x08
-#define     UART_FCR                            0x08
-#define     UART_LCR                            0x0C
-#define     UART_MCR                            0x10
-#define     UART_LSR_UART                       0x14
-#define     UART_MDR1                           0x20
-#define     UART_SYSC                           0x54
-#define     UART_SYSS                           0x58
 
 
 

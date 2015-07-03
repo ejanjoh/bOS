@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2015-05-19
- *      Updated:
+ *      Updated:    2015-06-27
  *
  *      Project:    bOS/Beaglebone Black (rev A5C)
  *      File name:  start.S
@@ -12,6 +12,7 @@
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
  *      ver 5       File created
+ *      ver 7       Added support to handle context switching
  *
  *      Reference: See hardware_system.h
  *
@@ -19,6 +20,8 @@
 
 #include "hardware_system.h"
 
+
+        .equ    DEAD_LOOP_CNT,  0x500000
 
 
         /*********************************************************************** 
@@ -46,7 +49,7 @@ _start:
         @ Put a watermark onto the full stack area
         movw    r0, #:lower16:_stack_start
         movt    r0, #:upper16:_stack_start
-        ldr     r1, =STACK_WATERMARK
+        ldr     r1, =STACK_WATERMARK_PAT
         movw    r2, #:lower16:_stack_end
         movt    r2, #:upper16:_stack_end
         sub     r2, r2, r0
@@ -61,7 +64,7 @@ _start:
         @ Change to undefined mode
         mov     r0, #UND32_MODE
         mrs     r1, cpsr
-        bic     r1, r1, #CPSR_SYSTEM_MODE_BM
+        bic     r1, r1, #CPSR_SYSTEM_MODE_MASK
         orr     r1, r1, r0
         msr     cpsr_c, r1
 
@@ -72,7 +75,7 @@ _start:
         @ Change to abort mode
         mov     r0, #ABT32_MODE
         mrs     r1, cpsr
-        bic     r1, r1, #CPSR_SYSTEM_MODE_BM
+        bic     r1, r1, #CPSR_SYSTEM_MODE_MASK
         orr     r1, r1, r0
         msr     cpsr_c, r1
 
@@ -83,7 +86,7 @@ _start:
         @ Change to irq mode
         mov     r0, #IRQ32_MODE
         mrs     r1, cpsr
-        bic     r1, r1, #CPSR_SYSTEM_MODE_BM
+        bic     r1, r1, #CPSR_SYSTEM_MODE_MASK
         orr     r1, r1, r0
         msr     cpsr_c, r1
 
@@ -94,7 +97,7 @@ _start:
         @ Change to fiq mode
         mov     r0, #FIQ32_MODE
         mrs     r1, cpsr
-        bic     r1, r1, #CPSR_SYSTEM_MODE_BM
+        bic     r1, r1, #CPSR_SYSTEM_MODE_MASK
         orr     r1, r1, r0
         msr     cpsr_c, r1
 
@@ -105,7 +108,7 @@ _start:
         @ Change to system mode
         mov     r0, #SYS32_MODE
         mrs     r1, cpsr
-        bic     r1, r1, #CPSR_SYSTEM_MODE_BM
+        bic     r1, r1, #CPSR_SYSTEM_MODE_MASK
         orr     r1, r1, r0
         msr     cpsr_c, r1
 
@@ -122,7 +125,7 @@ _start:
         @ Add watermark patterns into the heap
         movw    r0, #:lower16:_heap_start
         movt    r0, #:upper16:_heap_start
-        ldr     r1, =HEAP_WATERMARK
+        ldr     r1, =HEAP_WATERMARK_PAT
         movw    r2, #:lower16:_heap_end
         movt    r2, #:upper16:_heap_end
         sub     r2, r2, r0
@@ -143,11 +146,11 @@ _start:
         @ Enable the interface and functional clocks on GPIO_1
         movw    r0, #:lower16:CM_PER_BASE
         movt    r0, #:upper16:CM_PER_BASE
-        movw    r1, #:lower16:CM_PER_FUNCT_INTRFC_CLCK_BM       @ functional and interface clocks
-        movt    r1, #:upper16:CM_PER_FUNCT_INTRFC_CLCK_BM
-        str     r1, [r0, #CM_PER_GPIO1_CLKCTRL]
+        movw    r1, #:lower16:CM_PER_FUNCT_INTRFC_CLCK_MASK         @ functional and interface clocks
+        movt    r1, #:upper16:CM_PER_FUNCT_INTRFC_CLCK_MASK
+        str     r1, [r0, #CM_PER_GPIO1_CLKCTRL_OFFSET]
 1:
-        ldr     r2, [r0, #CM_PER_GPIO1_CLKCTRL]
+        ldr     r2, [r0, #CM_PER_GPIO1_CLKCTRL_OFFSET]
         cmp     r2, r1
         bne     1b
 
@@ -155,7 +158,7 @@ _start:
         bl      gpio_enable
         
         @ Turn on all user leds
-        mov     r0, #GPIO1_ALL_USR_LEDS_BM
+        mov     r0, #GPIO1_ALL_USR_LEDS_MASK
         bl      gpio_usrled_on
 
         @ Set up and enable the interrupt vector table
@@ -165,23 +168,23 @@ _start:
         movw    r0, #:lower16:CTRL_MOD_BASE
         movt    r0, #:upper16:CTRL_MOD_BASE
         mov     r1, #0x0                                    @ mux selected
-        orr     r1, r1, #CTRL_MODE_PULLUP_PULLDOWN_BM       @ Pullup/pulldown disabled
+        orr     r1, r1, #CTRL_MODE_PULLUP_PULLDOWN_MASK     @ Pullup/pulldown disabled
         
         @    - Set up the mux for Rx
-        orr     r1, r1, #CTRL_MODE_RECEIVER_BM               @  Receiver enabled
-        str     r2, [r0, #CTRL_MOD_OFFSET_CONF_UART0_RXD]
+        orr     r1, r1, #CTRL_MODE_RECEIVER_MASK            @  Receiver enabled
+        str     r2, [r0, #CTRL_MOD_OFFSET_CONF_UART0_RXD_OFFSET]
         
         @    - Set up the mux for Tx
-        bic     r2, r2, #CTRL_MODE_RECEIVER_BM              @ Receiver disabled
-        str     r2, [r0, #CTRL_MOD_OFFSET_CONF_UART0_TXD]
+        bic     r2, r2, #CTRL_MODE_RECEIVER_MASK            @ Receiver disabled
+        str     r2, [r0, #CTRL_MOD_OFFSET_CONF_UART0_TXD_OFFSET]
         
         @  Enable the interface and functional clocks on UART_0
         movw    r0, #:lower16:CM_WKUP_BASE
         movt    r0, #:upper16:CM_WKUP_BASE
-        mov     r1, #WKUP_FUNCT_INTRFC_CLCK_BM
-        str     r1, [r0, #CM_WKUP_UART0_CLKCTRL]
+        mov     r1, #CM_WKUP_FUNCT_INTRFC_CLCK_MASK
+        str     r1, [r0, #CM_WKUP_UART0_CLKCTRL_OFFSET]
 1:
-        ldr     r2, [r0, #CM_WKUP_UART0_CLKCTRL]
+        ldr     r2, [r0, #CM_WKUP_UART0_CLKCTRL_OFFSET]
         cmp     r2, r1
         bne     1b
 
@@ -190,7 +193,10 @@ _start:
         
         @ Set up default IO configuartions.
         bl      setup_default_io_config
-
+        
+        @ Set up timer 2 (used for timer interrupt to the context switch)
+        bl      clock_enable_timer2
+        
 
         /* At this point one usually do a lot of configurations to optimize the system, to increase the
          * performance and so on. However we relay on that the ROM code is setting up most of the thing 
@@ -199,9 +205,15 @@ _start:
          * system in a somewhat proper way.
          */
 
+
         @ Perform other initializations...
-        @ bl    init
-        
+        bl      init
+
+        @ Enable IRQ on MPU
+        mrs     r4, cpsr
+        bic     r4, r4, #CPSR_IRQ_MASK
+        msr     cpsr_c, r4
+
         @ Branch off to main and do not return; cheerio and thanks for the fish...
         b       main
 
@@ -219,99 +231,70 @@ _start:
         .align 2
         .global _deadloop
 _deadloop:
-        @ Turn off the led´s
-        @mov     r0, #GPIO1_ALL_USR_LEDS_BM
-        mov     r0, #GPIO1_21_USR_LED_0_BM
-        bl      gpio_usrled_off
+        @ Disable IRQ/FIQ on MPU
+        mrs     r4, cpsr
+        orr     r4, r4, #(CPSR_IRQ_MASK | CPSR_FIQ_MASK)
+        msr     cpsr_c, r4
+
+        @ Turn the usr leds on and off to indicate an error or issue that hang the system (e.g. an assert)
 10:
+        mov     r0, #GPIO1_ALL_USR_LEDS_MASK
+        bl      gpio_usrled_off
+        mov     r1, #0
+11:
+        add     r1, r1, #1
+        cmp     r1, #DEAD_LOOP_CNT
+        bne     11b
+        
+        mov     r0, #GPIO1_ALL_USR_LEDS_MASK
+        bl      gpio_usrled_on
+        mov     r1, #0
+12:
+        add     r1, r1, #1
+        cmp     r1, #DEAD_LOOP_CNT
+        bne     12b
+
         b       10b
 
-
-        /*********************************************************************** 
-         * redirect_exception_vectors
+        /***********************************************************************
+         * clock_enable_timer2
          *
-         *  Redirect the exception vectors. Change the default addresses loaded 
-         *  at the jump addresses.
+         * Enable the interface and functional clocks needed by Timer2 and set
+         * the clock for a proper timer resolution (41.66 ns per tick, 24 MHz).
          *
-         * C prototype: void redirect_exception_vectors(void)
+         * C prototype: void clock_enable_timer2(void)
          **********************************************************************/
-        .section .init
+        .section .text
         .code 32
         .align 2
-        .global redirect_exception_vectors
-redirect_exception_vectors:
+        .global clock_enable_timer2
+clock_enable_timer2:
 
-        addr        .req r0
-        excHandl    .req r1
+        @ set up the clock source to timer 2 (source: CLK_M_OSC, 24 MHz)
+        movw    r0, #:lower16:CM_DPLL_BASE
+        movt    r0, #:upper16:CM_DPLL_BASE
+        mov     r1, #CM_DPLL_CLKSEL_TIMER2_CLK_CLKSEL_CLK_M_OSC_MASK        @ CLK_M_OSC = 24 MHz
+        str     r1, [r0, #CM_DPLL_CLKSEL_TIMER2_CLK_OFFSET]
 
-        /* clear the A bit - enable asynchronous aborts */
-        /*mrs     r2, cpsr
-        bic     r2, r2, #(1 << 8)
-        msr     cpsr, r1*/
+        movw    r0, #:lower16:CM_PER_BASE
+        movt    r0, #:upper16:CM_PER_BASE
+        mov     r1, #CM_PER_CLKCTRL_ENABLE_MASK
+        
+        @ interface clock (CM_PER_L4LS_GCLKCTRL_OFFSET)
+        str     r1, [r0, #CM_PER_L4LS_CLKCTRL_OFFSET]
+10:
+        ldr     r2, [r0, #CM_PER_L4LS_CLKCTRL_OFFSET]
+        cmp     r2, r1
+        bne     10b
 
-        /* Undefined Instruction */
-        movw    addr, #:lower16:LOAD_ADDR_UNDEF_INSTR_EXC
-        movt    addr, #:upper16:LOAD_ADDR_UNDEF_INSTR_EXC
-        movw    excHandl, #:lower16:undef_instr_handl$
-        movt    excHandl, #:upper16:undef_instr_handl$
-        str     excHandl, [addr]
-
-        /* Supervisor Call */
-        movw    addr, #:lower16:LOAD_ADDR_SVC_EXC
-        movt    addr, #:upper16:LOAD_ADDR_SVC_EXC
-        movw    excHandl, #:lower16:swc_handl$
-        movt    excHandl, #:upper16:swc_handl$
-        str     excHandl, [addr]
-
-        /* Prefetch Abort */
-        movw    addr, #:lower16:LOAD_ADDR_PREF_ABRT_EXC
-        movt    addr, #:upper16:LOAD_ADDR_PREF_ABRT_EXC
-        movw    excHandl, #:lower16:prefetch_abort_handl$
-        movt    excHandl, #:upper16:prefetch_abort_handl$
-        str     excHandl, [addr]
-
-        /* Data Abort */
-        movw    addr, #:lower16:LOAD_ADDR_DATA_ABRT_EXC
-        movt    addr, #:upper16:LOAD_ADDR_DATA_ABRT_EXC
-        movw    excHandl, #:lower16:data_abort_handl$
-        movt    excHandl, #:upper16:data_abort_handl$
-        str     excHandl, [addr]
-
-        /* IRQ Interrupt */
-        movw    addr, #:lower16:LOAD_ADDR_IRQ_INTR
-        movt    addr, #:upper16:LOAD_ADDR_IRQ_INTR
-        movw    excHandl, #:lower16:irq_handl$
-        movt    excHandl, #:upper16:irq_handl$
-        str     excHandl, [addr]
-
-        /* FIQ Interrupt */
-        movw    addr, #:lower16:LOAD_ADDR_FIQ_INTR
-        movt    addr, #:upper16:LOAD_ADDR_FIQ_INTR
-        movw    excHandl, #:lower16:fiq_handl$
-        movt    excHandl, #:upper16:fiq_handl$
-        str     excHandl, [addr]
-
+        @ functional clock (CM_PER_TIMER2_GCLK_OFFSET)
+        str     r1, [r0, #CM_PER_TIMER2_GCLK_OFFSET]
+20:
+        ldr     r2, [r0, #CM_PER_TIMER2_GCLK_OFFSET]
+        cmp     r2, r1
+        bne     20b
+        
         mov     pc, lr
-        .unreq  addr
-        .unreq  excHandl
-
-
-        @ Handle the below in other files or an other way... TBC
-undef_instr_handl$:
-swc_handl$:
-prefetch_abort_handl$:
-data_abort_handl$:
-irq_handl$:
-fiq_handl$:
-        b       _deadloop
-
-
-
-
-
-
-
-
 
 
 

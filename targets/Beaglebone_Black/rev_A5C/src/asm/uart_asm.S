@@ -41,12 +41,12 @@ uart_getc:
         
         @ Wait unil there is a char to be read on the UART0.
 1:
-        ldrh    r2, [r1, #UART_LSR_UART]
-        and     r2, r2, #UART_LSR_UART_RXFIFOE          @ are there any chars?
+        ldrh    r2, [r1, #UART_LSR_UART_OFFSET]
+        and     r2, r2, #UART_LSR_UART_RXFIFOE_MASK         @ are there any chars?
         cmp     r2, #0
         beq     1b
 2:
-        ldrh    r0, [r1, #UART_RHR]
+        ldrh    r0, [r1, #UART_RHR_OFFSET]
         and     r0, r0, #0xFF
         mov     pc, lr
 
@@ -74,12 +74,12 @@ uart_putc:
 
         /* Secure that UART is ready to tramsmit a char */
 1:
-        ldrh    r2, [r1, #UART_LSR_UART]
-        and     r2, r2, #UART_LSR_UART_TXFIFOE          @ ready to transmit?
+        ldrh    r2, [r1, #UART_LSR_UART_OFFSET]
+        and     r2, r2, #UART_LSR_UART_TXFIFOE_MASK         @ ready to transmit?
         cmp     r2, #0
         beq     1b
 2:
-        strh    r0, [r1, #UART_THR]
+        strh    r0, [r1, #UART_THR_OFFSET]
         mov     pc, lr
 
 
@@ -146,119 +146,119 @@ uart_setup_serial_uart0:
         movw    r0, #:lower16:UART0_BASE
         movt    r0, #:upper16:UART0_BASE
 1:
-        add     r1, r0, #UART_SYSC                      @ ldrh can only handle 5 bit offset
+        add     r1, r0, #UART_SYSC_OFFSET                   @ ldrh can only handle 5 bit offset
         ldrh    r2, [r1]
-        orr     r2, r2, #UART_SYSC_SOFTRESET_BM
+        orr     r2, r2, #UART_SYSC_SOFTRESET_MASK
         strh    r2, [r1]
 
-        add     r1, r0, #UART_SYSS
+        add     r1, r0, #UART_SYSS_OFFSET
         @ loop until reset is performed
 2:
         ldrh    r2, [r1]
-        and     r2, r2, #UART_SYSS_RESETDONE_BM
-        cmp     r2, #UART_SYSS_RESETDONE_BM
+        and     r2, r2, #UART_SYSS_RESETDONE_MASK
+        cmp     r2, #UART_SYSS_RESETDONE_MASK
         bne     2b  
 
         @ --- FIFOs and DMA Settings ---
         movw    r0, #:lower16:UART0_BASE
         movt    r0, #:upper16:UART0_BASE
 1:
-        ldrh    r7, [r0, #UART_LCR]                     @ r7 = UART_LCR, to be used later on...
-        mov     r2, #UART_REG_CONFIG_MODE_B_BM
-        strh    r2, [r0, #UART_LCR]
+        ldrh    r7, [r0, #UART_LCR_OFFSET]                  @ r7 = UART_LCR, to be used later on...
+        mov     r2, #UART_REG_CONFIG_MODE_B_MASK
+        strh    r2, [r0, #UART_LCR_OFFSET]
 2:
-        ldrh    r8, [r0, #UART_EFR]                     @ r8 = UART_EFR, to be used later on...
-        orr     r2, r8, #UART_EFR_ENHANCED_EN_BM
-        strh    r2, [r0, #UART_EFR]
+        ldrh    r8, [r0, #UART_EFR_OFFSET]                  @ r8 = UART_EFR, to be used later on...
+        orr     r2, r8, #UART_EFR_ENHANCED_EN_MASK
+        strh    r2, [r0, #UART_EFR_OFFSET]
 3:
-        mov     r2, #UART_REG_CONFIG_MODE_A_BM
-        strh    r2, [r0, #UART_LCR]
+        mov     r2, #UART_REG_CONFIG_MODE_A_MASK
+        strh    r2, [r0, #UART_LCR_OFFSET]
 4:
-        add     r1, r0, #UART_MCR
-        ldrh    r9, [r1]                                @ r9 = UART_MCR, to be used later on...
-        orr     r2, r9, #UART_MCR_TCR_TLR_BM
+        add     r1, r0, #UART_MCR_OFFSET
+        ldrh    r9, [r1]                                    @ r9 = UART_MCR, to be used later on...
+        orr     r2, r9, #UART_MCR_TCR_TLR_MASK
         strh    r2, [r1]
 5:
-        mov     r2, #UART_NO_DMA_NOR_FIFO_BM
-        strh    r2, [r0, #UART_FCR]
+        mov     r2, #UART_NO_DMA_NOR_FIFO_MASK
+        strh    r2, [r0, #UART_FCR_OFFSET]
 6:
-        mov     r2, #UART_REG_CONFIG_MODE_B_BM
-        strh    r2, [r0, #UART_LCR]
+        mov     r2, #UART_REG_CONFIG_MODE_B_MASK
+        strh    r2, [r0, #UART_LCR_OFFSET]
 7:
         @ Skipped, no FIFO in use
 8:
         @ Skipped, No FIFO nor DMA in use
 9:
-        and     r8, r8, #UART_EFR_ENHANCED_EN_BM
-        ldrh    r2, [r0, #UART_EFR]
-        bic     r2, r2, #UART_EFR_ENHANCED_EN_BM
+        and     r8, r8, #UART_EFR_ENHANCED_EN_MASK
+        ldrh    r2, [r0, #UART_EFR_OFFSET]
+        bic     r2, r2, #UART_EFR_ENHANCED_EN_MASK
         orr     r2, r2, r8
-        strh    r2, [r0, #UART_EFR]
+        strh    r2, [r0, #UART_EFR_OFFSET]
 10:
-        mov     r2, #UART_REG_CONFIG_MODE_A_BM
-        strh    r2, [r0, #UART_LCR]
+        mov     r2, #UART_REG_CONFIG_MODE_A_MASK
+        strh    r2, [r0, #UART_LCR_OFFSET]
 11:
-        and     r9, r9, #UART_MCR_TCR_TLR_BM
-        ldrh    r2, [r0, #UART_MCR]
-        bic     r2, r2, #UART_MCR_TCR_TLR_BM
+        and     r9, r9, #UART_MCR_TCR_TLR_MASK
+        ldrh    r2, [r0, #UART_MCR_OFFSET]
+        bic     r2, r2, #UART_MCR_TCR_TLR_MASK
         orr     r2, r2, r9
-        str     r2, [r0, #UART_MCR]
+        str     r2, [r0, #UART_MCR_OFFSET]
 12:
-        strh    r7, [r0, #UART_LCR]
+        strh    r7, [r0, #UART_LCR_OFFSET]
 
         @ --- UART serial settings ---
         movw    r0, #:lower16:UART0_BASE
         movt    r0, #:upper16:UART0_BASE
-        add     r1, r0, #UART_MDR1                      @ ldrh can only handle 5 bit offset
+        add     r1, r0, #UART_MDR1_OFFSET                   @ ldrh can only handle 5 bit offset
 1:
         ldrh    r2, [r1]
-        orr     r2, r2, #UART_MDR1_MODE_SELECT_BM
+        orr     r2, r2, #UART_MDR1_MODE_SELECT_MASK
         strh    r2, [r1]
 2:
-        mov     r2, #UART_REG_CONFIG_MODE_B_BM
-        strh    r2, [r0, #UART_LCR]
+        mov     r2, #UART_REG_CONFIG_MODE_B_MASK
+        strh    r2, [r0, #UART_LCR_OFFSET]
 3:
-        ldrh    r7, [r0, #UART_EFR]                     @ r7 = UART_EFR, to be used later on...
+        ldrh    r7, [r0, #UART_EFR_OFFSET]                  @ r7 = UART_EFR, to be used later on...
         mov     r2, r7
-        orr     r2, r2, #UART_EFR_ENHANCED_EN_BM
-        strh    r2, [r0, #UART_EFR]
+        orr     r2, r2, #UART_EFR_ENHANCED_EN_MASK
+        strh    r2, [r0, #UART_EFR_OFFSET]
 4:
-        mov     r2, #UART_REGISTER_OPERATIONAL_MODE_BM
-        strh    r2, [r0, #UART_LCR]
+        mov     r2, #UART_REGISTER_OPERATIONAL_MODE_MASK
+        strh    r2, [r0, #UART_LCR_OFFSET]
 5:
-        mov     r2, #UART_IER_CLEAR_BM
-        strh    r2, [r0, #UART_IER_UART]
+        mov     r2, #UART_IER_CLEAR_MASK
+        strh    r2, [r0, #UART_IER_UART_OFFSET]
 6:
-        mov     r2, #UART_REG_CONFIG_MODE_B_BM
-        strh    r2, [r0, #UART_LCR]
+        mov     r2, #UART_REG_CONFIG_MODE_B_MASK
+        strh    r2, [r0, #UART_LCR_OFFSET]
 7:
-        mov     r2, #UART_DLL_CLOCK_LSB_BM
-        strh    r2, [r0, #UART_DLL]                     @ DLL-part of 115200 baud
-        mov     r2, #UART_DLH_CLOCK_MSB_BM
-        strh    r2, [r0, #UART_DLH]                     @ DLH-part of 115200 baud
+        mov     r2, #UART_DLL_CLOCK_LSB_MASK
+        strh    r2, [r0, #UART_DLL_OFFSET]                  @ DLL-part of 115200 baud
+        mov     r2, #UART_DLH_CLOCK_MSB_MASK
+        strh    r2, [r0, #UART_DLH_OFFSET]                  @ DLH-part of 115200 baud
 8:
-        mov     r2, #UART_REGISTER_OPERATIONAL_MODE_BM
-        strh    r2, [r0, #UART_LCR]
+        mov     r2, #UART_REGISTER_OPERATIONAL_MODE_MASK
+        strh    r2, [r0, #UART_LCR_OFFSET]
 9:
-        mov     r2, #UART_IER_INTERRUPT_DISABLED_BM     @ Interrupt isn´t enabled
-        strh    r2, [r0, #UART_IER_UART]
+        mov     r2, #UART_IER_INTERRUPT_DISABLED_MASK       @ Interrupt isn´t enabled
+        strh    r2, [r0, #UART_IER_UART_OFFSET]
 10:
-        mov     r2, #UART_REG_CONFIG_MODE_B_BM
-        strh    r2, [r0, #UART_LCR]
+        mov     r2, #UART_REG_CONFIG_MODE_B_MASK
+        strh    r2, [r0, #UART_LCR_OFFSET]
 11:
-        ldrh    r2, [r0, #UART_EFR]
-        bic     r2, #UART_EFR_ENHANCED_EN_BM
-        and     r7, r7, #UART_EFR_ENHANCED_EN_BM
+        ldrh    r2, [r0, #UART_EFR_OFFSET]
+        bic     r2, #UART_EFR_ENHANCED_EN_MASK
+        and     r7, r7, #UART_EFR_ENHANCED_EN_MASK
         orr     r2, r2, r7
-        strh    r2, [r0, #UART_EFR]                     @ Restore UART_EFR
+        strh    r2, [r0, #UART_EFR_OFFSET]                  @ Restore UART_EFR
 12:
-        mov     r2, #UART_LCR_8_BIT_CHAR_LENGTH_BM
-        add     r2, r2, #UART_LCR_1_STOP_BIT_BM
-                                                        @ & no parity
-        strh    r2, [r0, #UART_LCR]
+        mov     r2, #UART_LCR_8_BIT_CHAR_LENGTH_MASK
+        add     r2, r2, #UART_LCR_1_STOP_BIT_MASK
+                                                            @ & no parity
+        strh    r2, [r0, #UART_LCR_OFFSET]
 13:
         ldrh    r2, [r1]
-        bic     r2, #UART_MDR1_MODE_SELECT_BM           @ UART 16x mode
+        bic     r2, #UART_MDR1_MODE_SELECT_MASK             @ UART 16x mode
         strh    r2, [r1]
 
         ldmfd   sp!, {r7-r9}

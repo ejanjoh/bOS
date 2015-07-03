@@ -28,6 +28,12 @@
 #ifndef HARDWARE_SYSTEM_H_
 #define HARDWARE_SYSTEM_H_
 
+
+// Metadata
+#define     ARM32
+#define     ARMv6
+
+
 // ARM processor (arm1176jzf-s) system modes
 // Operating modes...
 #define     USR32_MODE                          0x10            // User mode
@@ -47,6 +53,8 @@
 
 // BIT MASKS
 #define     CPSR_SYSTEM_MODE_BM                 0x1F            // CPSR M[4:0]
+#define     CPSR_IRQ_BM                         0x80            // Processor Status Register - IRQ bit
+#define     CPSR_FIQ_BM                         0x40            // Processor Status Register - FIQ bit
 
 #define     GPIO_GPFSEL_GPIO_X0_TRIPLET_BM      0x7
 #define     GPIO_GPFSEL_GPIO_X1_TRIPLET_BM      (0x7 << (3*1))
@@ -61,6 +69,8 @@
 
 #define     UART_FR_RX_FIFO_EMPTY_BM            (0x1 << 4)
 #define     UART_FR_TRANSMIT_FIFO_FULL_BM       (0x1 << 5)
+
+#define     INTR_ENABLE_IRQ_1_TIMER_BM          0x01
 
 // Patterns
 #define     STACK_WATERMARK                     0xFF00FF00
@@ -88,6 +98,10 @@
 #define     UART_CR_TX_ENABLE                   (0x01 << 8)     // Transmit enable
 #define     UART_CR_RX_ENABLE                   (0x01 << 9)     // Receive enable
 
+#define     SYS_TIMER_INIT_DELAY                1000000
+#define     SYS_TIMER_INTR_INTERVAL             0x300000
+#define     SYS_TIMER_GPU_DISTURB               0xF00000
+#define     SYS_TIMER_CS_M1                     0x2
 
 // Peripherals
 
@@ -106,6 +120,39 @@
 #define     GPIO_OFFSET_GPPUD                   0x94            // GPIO Pin Pull-up/down Enable
 #define     GPIO_OFFSET_GPPUDCLK0               0x98            // GPIO Pin Pull-up/down Enable Clock 0
 #define     GPIO_OFFSER_GPPUDCLK1               0x9C            // GPIO Pin Pull-up/down Enable Clock 1
+
+
+// Interrupt Registers (BroadCom BMC2835 ARM Peripherals chapter 7 for details)
+#define     INTR_BASE                           0x2000B000
+#define     INTR_IRQ_BASIC_PEND                 0x200
+#define     INTR_IRQ_PEND_1                     0x204
+#define     INTR_IRQ_PEND_2                     0x208
+#define     INTR_FIQ_CTRL                       0x20C
+#define     INTR_ENABLE_IRQ_1                   0x210
+#define     INTR_ENABLE_IRQ_2                   0x214
+#define     INTR_ENABLE_BASIC_IRQ               0x218
+#define     INTR_DISABLE_IRQ_1                  0x21C
+#define     INTR_DISABLE_IRQ_2                  0x220
+#define     INTR_DISABLE_BASIC_IRQ              0x22C
+
+
+/*
+ * NOTE: Timer zero and one are used by the GPU, so avoid using them...
+ *
+ *      CO: is used by the GPU as timer tick (100 interrupts/second)
+ *      C2: is used for lightweight timers
+ */
+ 
+ 
+// System Timer (BroadCom BMC2835 ARM Peripherals chapter 12 for details)
+#define     SYSTEM_TIMER_BASE                   0x20003000
+#define     SYSTEM_TIMER_CS                     0x00            // control/status register
+#define     SYSTEM_TIMER_CLO                    0x04            // counter, lower 32 bits
+#define     SYSTEM_TIMER_CHI                    0x08            // counter, higher 32 bits
+#define     SYSTEM_TIMER_C0                     0x0C            // timer compare 0, see note
+#define     SYSTEM_TIMER_C1                     0x10            // timer compare 1
+#define     SYSTEM_TIMER_C2                     0x14            // timer compare 2, see note
+#define     SYSTEM_TIMER_C3                     0x18            // timer compare 3
 
 
 // UART (BroadCom BMC2835 ARM Peripherals chapter 13 for details)

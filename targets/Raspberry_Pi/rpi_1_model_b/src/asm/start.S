@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2015-05-07
- *      Updated:    2015-05-19
+ *      Updated:    2015-06-01
  *
  *      Project:    bOS/Raspberry Pi (rev rpi_1_model_b)
  *      File name:  start.S
@@ -13,12 +13,16 @@
  *      ---------------------------------------------------
  *      ver 3       File created
  *      ver 5       _deadloop updated
+ *      ver 7       Enable interrupts
  *
  *      Reference: See hardware_system.h
  *
  ******************************************************************************/
 
 #include "hardware_system.h"
+
+
+        .equ    DEAD_LOOP_CNT,  0x800000
 
 
 /* @ address 0x00000000
@@ -75,13 +79,13 @@ _start:
 
 @ Jump table for exceptions
 reset_jmp$:     .word   reset_handl$
-undef_jmp$:     .word   undef_instr_handl$
-swi_jmp$:       .word   swi_handl$
-pref_jmp$:      .word   prefetch_abort_handl$
-data_jmp$:      .word   data_abort_handl$
-resv_jmp$:      .word   reserved$
-irq_jmp$:       .word   irq_handl$
-fiq_jmp$:       .word   fiq_handl$
+undef_jmp$:     .word   _undef_instr_handl
+swi_jmp$:       .word   _swi_handl
+pref_jmp$:      .word   _prefetch_abort_handl
+data_jmp$:      .word   _data_abort_handl
+resv_jmp$:      .word   reserved$               @ major problem if we end up here...
+irq_jmp$:       .word   _irq_handl
+fiq_jmp$:       .word   _fiq_handl
 
 reset_handl$:
         @ Copy the interrupt vector table to its position
@@ -203,7 +207,12 @@ reset_handl$:
 
 
         @ Perform other initializations...
-        @ bl    init
+        bl      init
+        
+        @ Enable interrupt for handling timers, UARTs etc...
+        mrs     r4, cpsr
+        bic     r4, r4, #CPSR_IRQ_BM
+        msr     cpsr_c, r4
         
         @ Branch off to main and do not return; cheerio and thanks for the fish...
         b       main
@@ -217,27 +226,42 @@ reset_handl$:
          *
          * C prototype: void _deadloop(void) 
          **********************************************************************/
-        .section .init
+        .section .text
         .code 32
         .align 2
         .global _deadloop
 _deadloop:
-        @ Turn the ACT led off to indicate an error or issue that hang the system (e.g. an assert)
+        @ Turn the ACT led on and off to indicate an error or issue that hang the system (e.g. an assert)
+10:
         mov     r0, #GPIO_PIN_16
         bl      gpio_output_low                 @ turn off the ACT led
-10:
+        mov     r1, #0
+11:
+        add     r1, r1, #1
+        cmp     r1, #DEAD_LOOP_CNT
+        bne     11b
+        
+        mov     r0, #GPIO_PIN_16
+        bl      gpio_output_high
+        mov     r1, #0
+12:
+        add     r1, r1, #1
+        cmp     r1, #DEAD_LOOP_CNT
+        bne     12b
+
         b       10b
 
-@ Handle the below in other files or an other way... TBC
-undef_instr_handl$:
-swi_handl$:
-prefetch_abort_handl$:
-data_abort_handl$:
+@ We have major problems...
 reserved$:
-irq_handl$:
-fiq_handl$:
-        bl      _deadloop
-
+        ldr     r4, =puts
+        ldr     r4, [r4]
+        ldr     r0, =reserved_print_out$
+        mov     r1, #100
+        blx     r4
+        b       _deadloop
+reserved_print_out$:
+.asciz "RESERVED in IVT (MAJOR PROBLEMS)r\n"
+.align 2
 
 
 

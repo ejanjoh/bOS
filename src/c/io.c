@@ -113,7 +113,7 @@ int32_t printf(const uint32_t len, const char *format, ...)
 
 				    break;
 				} // case
-				case 'x': {
+				case 'x': {             // this generate wrong result when the input is zero...
 				    uint32_t integer = (uint32_t) va_arg(ap, int), digit;
 				    int32_t shift = 28;
 				    uint32_t print_it = 0;
@@ -132,6 +132,12 @@ int32_t printf(const uint32_t len, const char *format, ...)
 				        }
 				        shift -= 4;
 				    } // while
+				    
+				    // if zero
+				    if ( *(pStr - 1) == 'x' ) {
+				        *pStr++ = '0';
+				        totLen++;
+				    }
 
 				    break;
 				} // case
@@ -162,3 +168,22 @@ int32_t printf(const uint32_t len, const char *format, ...)
 }
 
 
+void print_hex32(const uint32_t u, uint32_t newline)
+{
+    uint32_t digit;
+    int32_t shift = 28;
+
+
+    puts("0x",10);
+    
+    while (shift >= 0) {
+        digit = (u >> shift) & 0xf;
+		if (digit < 10) putc(digit + '0');
+		else putc(digit + 'a' - 10);
+        shift -= 4;
+    } // while
+    
+    if (newline) puts("\r\n", 10);
+    
+    return;
+}
