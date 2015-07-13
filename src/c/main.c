@@ -12,6 +12,7 @@
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
  *      ver 6       Updated
+ *      ver 8       Added support to start processes
  *
  *
  *      Reference: See hardware_system.h
@@ -22,6 +23,7 @@
 #include "io.h"
 #include "log.h"
 #include "assert.h"
+#include "process_control.h"
 
 
 extern uint32_t _init_start;
@@ -51,7 +53,10 @@ void main(void)
      * add something...
      */
 
-    // never end...
+    // start all other processes
+    proc_ctrl_init_proc();
+
+    // from now this is the idle process, allway´s ready and never end...
     for (;;) ;
     ASSERT(0);
 }

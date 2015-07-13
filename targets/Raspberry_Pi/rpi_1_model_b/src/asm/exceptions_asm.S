@@ -12,6 +12,7 @@
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
  *      ver 7       Updated
+ *      ver 8       Updated
  *
  *
  *      Reference: See hardware_system.h
@@ -135,28 +136,30 @@ _irq_handl:
 
         @ is the timer intrrupt from GPU?
         ldr     r0, =SYSTEM_TIMER_BASE
-        ldr     r1, [r0, #SYSTEM_TIMER_CS]
-        and     r1, r1, #SYS_TIMER_CS_M1
-        cmp     r1, #SYS_TIMER_CS_M1
+        ldr     r1, [r0, #SYSTEM_TIMER_CS_OFFSET]
+        and     r1, r1, #SYS_TIMER_CS_M1_MASK
+        cmp     r1, #SYS_TIMER_CS_M1_MASK
         bne     10f
 
         @ Handle interrupts
         ldr     sp, =__stack_exc_irq_top
-        ldr     r4, =puts                   @ as of now, just print out a note...
-        ldr     r4, [r4]
-        ldr     r0, =irq_print_out$
-        mov     r1, #100
-        blx     r4
+        @ldr     r4, =puts                   @ as of now, just print out a note...
+        @ldr     r4, [r4]
+        @ldr     r0, =irq_print_out$
+        @mov     r1, #100
+        @blx     r4
+        mov     r0, #2                      @ set the old process in state ready
+        bl      _proc_ctrl_schedule         @ schedule a new process to run
         
         @ Add a new timeout
         ldr     r0, =SYSTEM_TIMER_BASE
-        ldr     r1, [r0, #SYSTEM_TIMER_CLO]
-        add     r1, r1, #SYS_TIMER_INTR_INTERVAL
-        str     r1, [r0, #SYSTEM_TIMER_C1]
+        ldr     r1, [r0, #SYSTEM_TIMER_CLO_OFFSET]
+        add     r1, r1, #SYS_TIMER_INTR_INTERVAL_PAT
+        str     r1, [r0, #SYSTEM_TIMER_C1_OFFSET]
         
         @ Clear timer channel
-        ldr     r1, =SYS_TIMER_CS_M1
-        str     r1, [r0, #SYSTEM_TIMER_CS]
+        ldr     r1, =SYS_TIMER_CS_M1_MASK
+        str     r1, [r0, #SYSTEM_TIMER_CS_OFFSET]
         
         @ to be added: remove the timer interrupt comming from the GPU...
 

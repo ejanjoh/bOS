@@ -24,13 +24,10 @@
 
 void gpio_funcsel(const uint32_t offset, const uint32_t bitmap, const uint32_t altfcn)
 {
-    volatile uint32_t *p = (volatile uint32_t *) (GPIO_BASE + offset);
-    uint32_t cnf = *p;
-    
+    uint32_t cnf = GET32(GPIO_BASE + offset);
     cnf = cnf & ~bitmap;
     cnf = cnf | altfcn;
-    *p = cnf;
-
+    SET32(GPIO_BASE + offset, cnf);
     return;
 }
 
@@ -38,26 +35,22 @@ void gpio_funcsel(const uint32_t offset, const uint32_t bitmap, const uint32_t a
 int32_t gpio_output_high(uint32_t gpio)
 {
     uint32_t pin = 1;
-    volatile uint32_t *p = NULL;
 
     if ( !(gpio <= 53) ) {
-        //LOG_WARNING(-1);                      Change to an assert!
         return -1;
     }
 
     if (gpio <= 31) {
-        p = (volatile uint32_t *) (GPIO_BASE + GPIO_OFFSET_GPCLR0);
         pin <<= gpio;
+        SET32(GPIO_BASE + GPIO_GPCLR0_OFFSET, pin);
     }
     else if (32 <= gpio) {
-        p = (volatile uint32_t *) (GPIO_BASE + GPIO_OFFSET_GPCLR1);
         gpio -= 32;
         pin <<= gpio;
         gpio += 32;
+        SET32(GPIO_BASE + GPIO_GPCLR1_OFFSET, pin);
     }
 
-    *p = pin;
-    p = NULL;
     return (int32_t) gpio;
 }
 
@@ -65,41 +58,35 @@ int32_t gpio_output_high(uint32_t gpio)
 int32_t gpio_output_low(uint32_t gpio)
 {
     uint32_t pin = 1;
-    volatile uint32_t *p = NULL;
 
     if ( !(gpio <= 53) ) {
-        //LOG_WARNING(-1);                      Change to an assert!
         return -1;
     }
 
     if (gpio <= 31) {
-        p = (volatile uint32_t *) (GPIO_BASE + GPIO_OFFSET_GPSET0);
         pin <<= gpio;
+        SET32(GPIO_BASE + GPIO_GPSET0_OFFSET, pin);
     }
     else if (32 <= gpio) {
-        p = (volatile uint32_t *) (GPIO_BASE + GPIO_OFFSET_GPSET1);
         gpio -= 32;
         pin <<= gpio;
         gpio += 32;
+        SET32(GPIO_BASE + GPIO_GPSET1_OFFSET, pin);
     }
 
-    *p = pin;
-    p = NULL;
     return (int32_t) gpio;
 }
 
 
 void gpio_setup_uart(void)
 {
-    volatile uint32_t *pReg = NULL;
-    volatile uint32_t cnt;
-    
-    
+    volatile uint32_t cnt;   
+
     // GPIO pin 14 (UART TX): configure as alternate function 0
-    gpio_funcsel(GPIO_OFFSET_GPFSEL1, GPIO_GPFSEL_GPIO_X4_TRIPLET_BM, GPIO_14_UART_TX);
+    gpio_funcsel(GPIO_GPFSEL1_OFFSET, GPIO_GPFSEL_GPIO_X4_TRIPLET_MASK, GPIO_14_UART_TX_MASK);
 
     //GPIO pin 15 (UART RX): configure as alternate function 0
-    gpio_funcsel(GPIO_OFFSET_GPFSEL1, GPIO_GPFSEL_GPIO_X5_TRIPLET_BM, GPIO_15_UART_RX);
+    gpio_funcsel(GPIO_GPFSEL1_OFFSET, GPIO_GPFSEL_GPIO_X5_TRIPLET_MASK, GPIO_15_UART_RX_MASK);
 
     /* The GPIO pins used as TX and RX must be in a floating state, i.e. the
      * pull-up/down should be disabled. According to the reference one must wait
@@ -111,20 +98,14 @@ void gpio_setup_uart(void)
      *      optimized away...
      */
     
-    pReg = (volatile uint32_t *) (GPIO_BASE + GPIO_OFFSET_GPPUD);
-    *pReg = GPIO_GPPUD_DISABLE_PULL_UP_DOWN;
-    for (cnt = 0; cnt < AN150CYCLES; cnt++);
-    
-    pReg = (volatile uint32_t *) (GPIO_BASE + GPIO_OFFSET_GPPUDCLK0);
-    *pReg = GPIO_GPPUDCLK0_PIN_14 | GPIO_GPPUDCLK0_PIN_15;
-    for (cnt = 0; cnt < AN150CYCLES; cnt++);
-    
-    pReg = (volatile uint32_t *) (GPIO_BASE + GPIO_OFFSET_GPPUD);
-    *pReg = 0;
-    
-     pReg = (volatile uint32_t *) (GPIO_BASE + GPIO_OFFSET_GPPUDCLK0);
-    *pReg = 0;   
+    SET32(GPIO_BASE + GPIO_GPPUD_OFFSET, GPIO_GPPUD_DISABLE_PULL_UP_DOWN_PAT);
+    for (cnt = 0; cnt < AN150CYCLES_PAT; cnt++);
 
+    SET32(GPIO_BASE + GPIO_GPPUDCLK0_OFFSET, GPIO_GPPUDCLK0_PIN_14_MASK | GPIO_GPPUDCLK0_PIN_15_MASK);
+    for (cnt = 0; cnt < AN150CYCLES_PAT; cnt++);
+
+    SET32(GPIO_BASE + GPIO_GPPUD_OFFSET, 0);
+    SET32(GPIO_BASE + GPIO_GPPUDCLK0_OFFSET, 0);
     return;
 }
 

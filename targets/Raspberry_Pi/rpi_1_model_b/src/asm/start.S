@@ -102,7 +102,7 @@ reset_handl$:
         sub     sp, sp, #4                      @ current stack pointer (supervisor mode)
 
         ldr     r0, =_stack_start               @ start mark at this address
-        ldr     r1, =STACK_WATERMARK            @ pattern to be set
+        ldr     r1, =STACK_WATERMARK_PAT        @ pattern to be set
         ldr     r2, =_stack_end
         sub     r2, r2, r0
         add     r2, r2, #4
@@ -166,7 +166,7 @@ reset_handl$:
 
         @ Add watermark patterns into the heap
         ldr     r0, =_heap_start
-        ldr     r1, =HEAP_WATERMARK
+        ldr     r1, =HEAP_WATERMARK_PAT
         ldr     r2, =_heap_end
         sub     r2, r2, r0
         lsr     r2, r2, #2
@@ -174,11 +174,11 @@ reset_handl$:
         bl      memset32
 
         @ Turn on the ACT-led; this to indicate a system started and that all is ok so far
-        mov     r0, #GPIO_OFFSET_GPFSEL1
-        mov     r1, #GPIO_GPFSEL_GPIO_X6_TRIPLET_BM
-        mov     r2, #GPIO_16_ACT_LED
+        mov     r0, #GPIO_GPFSEL1_OFFSET
+        mov     r1, #GPIO_GPFSEL_GPIO_X6_TRIPLET_MASK
+        mov     r2, #GPIO_16_ACT_LED_MASK
         bl      gpio_funcsel                    @ configure the GPIO pin used for the ACT led.
-        mov     r0, #GPIO_PIN_16
+        mov     r0, #GPIO_PIN_16_MASK
         bl      gpio_output_high                @ turn on the ACT led
         
         @ Set up GPIO 14 and 15 to handle UART TX and RX respectively
@@ -233,7 +233,7 @@ reset_handl$:
 _deadloop:
         @ Turn the ACT led on and off to indicate an error or issue that hang the system (e.g. an assert)
 10:
-        mov     r0, #GPIO_PIN_16
+        mov     r0, #GPIO_PIN_16_MASK
         bl      gpio_output_low                 @ turn off the ACT led
         mov     r1, #0
 11:
@@ -241,7 +241,7 @@ _deadloop:
         cmp     r1, #DEAD_LOOP_CNT
         bne     11b
         
-        mov     r0, #GPIO_PIN_16
+        mov     r0, #GPIO_PIN_16_MASK
         bl      gpio_output_high
         mov     r1, #0
 12:

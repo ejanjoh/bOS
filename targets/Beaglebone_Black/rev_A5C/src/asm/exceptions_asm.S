@@ -116,7 +116,6 @@ irq_handl:
         @ Handle interrupts
         movw    sp, #:lower16:__stack_irq_top
         movt    sp, #:upper16:__stack_irq_top
-        @bl      print_current_pcb               @ test...
         
         @ - Get the number of the highest priority active IRQ
         movw    r0, #:lower16:INTC_BASE
@@ -126,14 +125,23 @@ irq_handl:
         
         cmp     r1, #INTC_INT_NUMBER_TIMER2_PAT
         bne     irq_assert
-        bl      update_context_switch_timer2
+        mov     r0, #2                                      @ set the old process in state ready
+        bl      _proc_ctrl_schedule                         @ schedule a "new" process to run
+        
+        @ - Update the timer
+        movw    r0, #:lower16:DM_TIMER2_BASE
+        movt    r0, #:upper16:DM_TIMER2_BASE
+        mov     r1, #TIMER_IRQSTATUS_MAT_IT_FLAG_MASK
+        str     r1, [r0, #TIMER_IRQSTATUS_OFFSET]           @ clear the interrupt
+        mov     r1, #TCRR_INIT_VALUE_PAT
+        str     r1, [r0, #TIMER_TCRR_OFFSET]                @ Set the timer counter to the start value
 
         @ - Allow new IRQs/FIQs at INTC side
         @ The INTC_CONTROL register is a write only register so no need to write back others bits
         movw    r0, #:lower16:INTC_BASE
         movt    r0, #:upper16:INTC_BASE
         mov     r1, #INTC_NEW_IRQ_AGR_MASK
-        str     r1, [r0, #INTC_CONTROL_OFFSET]      @ Write the INTC_NEW_IRQ_AGR_MASK bit to allow new IRQs
+        str     r1, [r0, #INTC_CONTROL_OFFSET]              @ Write the INTC_NEW_IRQ_AGR_MASK bit to allow new IRQs
 
         @ - Data Synchronization Barrier
         mov     r0, #0x0
@@ -208,7 +216,7 @@ fiq_handl:
         movt    r0, #:upper16:fiq_handl_print_out$
         mov     r1, #100
         blx     r4
-        bl      print_current_pcb
+        bl      proc_ctrl_print_curr_pcb
         
         @ Hang the system
         b       _deadloop
@@ -250,7 +258,7 @@ undef_instr_handl:
         movt    r0, #:upper16:undef_instr_handl_print_out$
         mov     r1, #100
         blx     r4
-        bl      print_current_pcb
+        bl      proc_ctrl_print_curr_pcb
         
         @ Hang the system
         b       _deadloop
@@ -292,7 +300,7 @@ svc_handl:
         movt    r0, #:upper16:svc_handl_print_out$
         mov     r1, #100
         blx     r4
-        bl      print_current_pcb
+        bl      proc_ctrl_print_curr_pcb
         
         @ Hang the system
         b       _deadloop
@@ -334,7 +342,7 @@ prefetch_abort_handl:
         movt    r0, #:upper16:prefetch_abort_handl_print_out$
         mov     r1, #100
         blx     r4
-        bl      print_current_pcb
+        bl      proc_ctrl_print_curr_pcb
         
         @ Hang the system
         b       _deadloop
@@ -376,7 +384,7 @@ data_abort_handl:
         movt    r0, #:upper16:data_abort_handl_print_out$
         mov     r1, #100
         blx     r4
-        bl      print_current_pcb
+        bl      proc_ctrl_print_curr_pcb
         
         @ Hang the system
         b       _deadloop

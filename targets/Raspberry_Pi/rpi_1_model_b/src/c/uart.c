@@ -29,17 +29,14 @@
  * of the later UART. */
 void uart_init(void)
 {
-    volatile uint32_t *pReg = NULL;
+    //volatile uint32_t *pReg = NULL;
 
     // Disable the UART (and every thing else controlled by the UART control register)
-    pReg = (volatile uint32_t *) (UART_BASE + UART_OFFSET_CR);
-    *pReg = UART_CR_DISABLE_UART;
+    SET32(UART_BASE + UART_CR_OFFSET, UART_CR_DISABLE_UART_PAT);
 
     // Clear potential pending interrupts and disable all interrupts.
-    pReg = (volatile uint32_t *) (UART_BASE + UART_OFFSET_ICR);
-    *pReg = UART_ICR_CLEAR_INTERRUPT;
-    pReg = (volatile uint32_t *) (UART_BASE + UART_OFFSET_IMSC);
-    *pReg = UART_IMSC_CLEAR_INTERRUPT_MASK;
+    SET32(UART_BASE + UART_ICR_OFFSET, UART_ICR_CLEAR_INTERRUPT_PAT);
+    SET32(UART_BASE + UART_IMSC_OFFSET, UART_IMSC_CLEAR_INTERRUPT_MASK_PAT);
 
     /* Set the integer and fractional baud rate divisors:
      * baud = 115200
@@ -58,31 +55,25 @@ void uart_init(void)
      * documents. However quite some people has investigated this and the
      * frequency 3 MHz is often used by others (e.g. take a look at some of the
      * Linux distributions available) */
-    pReg = (volatile uint32_t *) (UART_BASE + UART_OFFSET_IBRD);
-    *pReg = UART_IBRD;
-    pReg = (volatile uint32_t *) (UART_BASE + UART_OFFSET_FBRD);
-    *pReg = UART_FBRD;
+    SET32(UART_BASE + UART_IBRD_OFFSET, UART_IBRD_PAT);
+    SET32(UART_BASE + UART_FBRD_OFFSET, UART_FBRD_PAT);
 
     /* - Disable stick parity
      * - Enable 8 bits data per frame
      * - Enable FIFO
      * - Disable two stop bits
      * - Disable parity */
-    pReg = (volatile uint32_t *) (UART_BASE + UART_OFFSET_LCRH);
-    //*pReg = UART_LCRH_ENABLE_8_BIT_DATA | UART_LCRH_ENABLE_FIFO;
-    *pReg = UART_LCRH_ENABLE_8_BIT_DATA;                  // FIFO disabled
+    SET32(UART_BASE + UART_LCRH_OFFSET, UART_LCRH_ENABLE_8_BIT_DATA_MASK);      // FIFO disabled
+    //SET32(UART_BASE + UART_OFFSET_LCRH, UART_LCRH_ENABLE_8_BIT_DATA | UART_LCRH_ENABLE_FIFO);
 
     // Set FIFO interrupt trigger level 1/8 full
-    pReg = (volatile uint32_t *) (UART_BASE + UART_OFFSET_IFLS);
-    *pReg = UART_IFLS_FIFO_LEVEL_SELECT;
+    SET32(UART_BASE + UART_IFLS_OFFSET, UART_IFLS_FIFO_LEVEL_SELECT_PAT);
 
     // Enable the interrupts
-    pReg = (volatile uint32_t *) (UART_BASE + UART_OFFSET_IMSC);
-    *pReg = UART_IMSC_SET_RX;           // RX interrupt mask only
+    SET32(UART_BASE + UART_IMSC_OFFSET, UART_IMSC_SET_RX_MASK);                 // RX interrupt mask only
 
     // Enable RX, TX and the UART
-    pReg = (volatile uint32_t *) (UART_BASE + UART_OFFSET_CR);
-    *pReg = UART_CR_RX_ENABLE | UART_CR_TX_ENABLE | UART_CR_UART_ENABLE;
+    SET32(UART_BASE + UART_CR_OFFSET, UART_CR_RX_ENABLE_MASK | UART_CR_TX_ENABLE_MASK | UART_CR_UART_ENABLE_MASK);
 
     return;
 }
@@ -90,25 +81,19 @@ void uart_init(void)
 // Get the first character in the PL011 UARTs FIFO
 char uart_getc(void)
 {
-    volatile uint32_t *pFlagReg = (volatile uint32_t *) (UART_BASE + UART_OFFSET_FR);
-    volatile uint32_t *pDataReg = (volatile uint32_t *) (UART_BASE +  UART_OFFSET_DR);
-
     // If the RX FIFO is empty, wait...
-    while ((*pFlagReg) & UART_FR_RX_FIFO_EMPTY_BM);
+    while (GET32(UART_BASE + UART_FR_OFFSET) & UART_FR_RX_FIFO_EMPTY_MASK);
 
-    return (char) *pDataReg;
+    return (char) GET32(UART_BASE +  UART_DR_OFFSET);
 }
 
 // Put a character in the PL011 UARTs FIFO for transmit
 void uart_putc(const char ch)
 {
-    volatile uint32_t *pFlagReg = (volatile uint32_t *) (UART_BASE + UART_OFFSET_FR);
-    volatile uint32_t *pDataReg = (volatile uint32_t *) (UART_BASE +  UART_OFFSET_DR);
-
     /* If the transmit FIFO is full, wait... */
-    while ( (*pFlagReg) & UART_FR_TRANSMIT_FIFO_FULL_BM );
+    while (GET32(UART_BASE + UART_FR_OFFSET) & UART_FR_TRANSMIT_FIFO_FULL_MASK);
 
-    *pDataReg = (const uint32_t) ch;
+    SET32(UART_BASE +  UART_DR_OFFSET, ch);
     return;
 }
 
@@ -127,3 +112,6 @@ void uart_puts(const char *str, const uint32_t len)
 
     return;
 }
+
+
+

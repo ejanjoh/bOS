@@ -115,6 +115,8 @@
 #define     ABT32_MODE                          0x17            // Abort mode
 #define     UND32_MODE                          0x1B            // Undefined mode
 
+#define     SPSR_CREATE_PCB                     0x140           // Used to create the PCB for every process (check up!)
+
 // System addresses
 #define     LOAD_ADDR_UNDEF_INSTR_EXC_REG       0x4030CE24      // Jump address undefined instruction
 #define     LOAD_ADDR_SVC_EXC_REG               0x4030CE28      // Jump address supervisor call

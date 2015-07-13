@@ -66,5 +66,7 @@
 > 	- [Raspberry Pi] on irq, context switch added
 > 	- [Beaglebone Black] timer enabled interrupts
 > 	- [Beaglebone Black] on irq, context switch added
+> - ver 8:
+> 	- [bOS] Process schedule added
 >	  
 >		
