@@ -33,6 +33,7 @@
 // Metadata
 #define     ARM32
 #define     ARMv7
+#define     ARM_SYS32_MODE_ONLY
 
 // Access hardware registers, in C only...
 #define GET32(addr) (*(volatile unsigned int *) (addr))

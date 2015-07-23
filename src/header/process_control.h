@@ -13,6 +13,9 @@
  *      ---------------------------------------------------
  *      ver 7       Updated
  *      ver 8       Updated
+ *      ver 9       Added methods for a processes to hand over to an other 
+ *                  process. Added methods for processes to enable and disable 
+ *                  interrupts
  *
  *
  *      Reference: See hardware_system.h
@@ -25,6 +28,22 @@
 #include <stdint.h>
 #include "hardware_system.h"
 
+#ifdef ARM_SYS32_MODE_ONLY
+// Disable interrupts (irq)
+
+extern int32_t gDisableInterruptCount;
+
+#define DISABLE_INTERRUPT __asm__ __volatile__ ("mrs     r3, cpsr\n\t"  \
+                                                "orr     r3, r3, #(0x80)\n\t" \
+                                                "msr     cpsr_c, r3\n\t" ::: "r3", "cc", "memory")
+// Enable interrupts (irq)
+#define ENABLE_INTERRUPT __asm__ __volatile__ ("mrs     r3, cpsr\n\t"  \
+                                               "bic     r3, r3, #(0x80)\n\t" \
+                                               "msr     cpsr_c, r3\n\t" ::: "r3", "cc", "memory")
+#else
+#define DISABLE_INTERRUPT ((void) 0)
+#define ENABLE_INTERRUPT ((void) 0)
+#endif /* ARM_SYS32_MODE_ONLY */
 
 // The max length of a process name (MAXLEN_PROCNAME-1)
 #define MAXLEN_PROCNAME 32
@@ -50,7 +69,7 @@
  * ready   --> running
  * blocked --> ready
  */
-typedef enum {created = 0, running, ready, blocked} procState_t;
+typedef enum {created = 0, running, ready, blocked_semaphore, blocked} procState_t;
 
 /* Process prio - type definition
  *
@@ -89,25 +108,26 @@ uint32_t r9;
 uint32_t r10;
 uint32_t r11;
 uint32_t r12;
-uint32_t r13;                                   // stack pointer (sp)
-uint32_t r14;                                   // link register (ln)
-uint32_t spsr;                                  // saved program status register
+uint32_t r13;                               // stack pointer (sp)
+uint32_t r14;                               // link register (ln)
+uint32_t spsr;                              // saved program status register
 uint32_t lr_exc;
 #endif /* ARM32 */
 
 // ********** User, Context and Schedule dependencies *********************
-uint32_t pid;                                   // process id
-procPrio_t prio;                                // process prio
-procMode_t mode;                                // process mode (usr or sys)
-procState_t state;                              // the state of the process
-uint32_t stackTop;                              // the stack top
-uint32_t stackSize;                             // the size of the process stack
-char procName[MAXLEN_PROCNAME];                 // process name
+uint32_t pid;                               // process id
+procPrio_t prio;                            // process prio
+procMode_t mode;                            // process mode (usr or sys)
+procState_t state;                          // the state of the process
+uint32_t stackTop;                          // the stack top
+uint32_t stackSize;                         // the size of the process stack
+char procName[MAXLEN_PROCNAME];             // process name
 
 // ********** Debug and Tuning ********************************************
-uint32_t totRuns;                               // the number of times the process has been running
-uint32_t fullCycle;                             // the number of times the process has been running a full context cycle
-uint32_t lstCntxtCnt;                           // the last count of gCntxtCnt when this process was running
+uint32_t totRuns;                           // the number of times the process has been running
+uint32_t totReady;                          // the number of times the process has switched out and been ready to run.
+uint32_t totNotFullCycle;                   // the number of times the process has not run a full cycle.
+uint32_t lstCntxtCnt;                       // the last count of gCntxtCnt when this process was running
 } pcb_t;
 
 
@@ -195,7 +215,22 @@ uint32_t proc_ctrl_get_curr_pid(void);
 
 
 
-// To be created
+/* procPrio_t proc_ctrl_get_curr_prio(void)
+ *
+ * in:          None
+ *
+ * out:         The process priority on the process currently running.
+ *
+ * description: See description on out.
+ *
+ * depend:      None
+ *
+ * note:        None
+ */
+procPrio_t proc_ctrl_get_curr_prio(void);
+
+
+
 /* void proc_ctrl_context_switch(const procState_t returnState)
  *
  * returnState: The state of the process switched out after a context switch

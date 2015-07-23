@@ -14,6 +14,8 @@
  *      ver 3       Updated and copied to bOS
  *      ver 5       Updated function names
  *                  Adjusted end of line format
+ *      ver 9       Protected the UART0 used for serial communication with a 
+ *                  mutex.
  *
  *
  *      Reference: See hardware_system.h
@@ -23,6 +25,10 @@
 #include <stddef.h>
 #include "uart.h"
 #include "hardware_system.h"
+#include "semaphore.h"
+
+// Mutex to protect the UART0 used for serial communication
+semaphore_t gMutexUART0;
 
 
 /* The RPI has two UARTs, one mini-UART and one PL011 UART; this is the initialization
@@ -75,6 +81,9 @@ void uart_init(void)
     // Enable RX, TX and the UART
     SET32(UART_BASE + UART_CR_OFFSET, UART_CR_RX_ENABLE_MASK | UART_CR_TX_ENABLE_MASK | UART_CR_UART_ENABLE_MASK);
 
+    // init a mutex to protect the uart0 used serial in and out
+    semaphore_init(&gMutexUART0, MUTEX_INIT_VALUE);
+
     return;
 }
 
@@ -90,10 +99,14 @@ char uart_getc(void)
 // Put a character in the PL011 UARTs FIFO for transmit
 void uart_putc(const char ch)
 {
+    semaphore_wait(&gMutexUART0);
+
     /* If the transmit FIFO is full, wait... */
     while (GET32(UART_BASE + UART_FR_OFFSET) & UART_FR_TRANSMIT_FIFO_FULL_MASK);
 
     SET32(UART_BASE +  UART_DR_OFFSET, ch);
+    
+    semaphore_signal(&gMutexUART0);
     return;
 }
 
@@ -103,6 +116,7 @@ void uart_puts(const char *str, const uint32_t len)
 {
     const char * pStr = str;
     uint32_t n = 0;
+
 
     while (('\0' != *pStr) && (n < len)) {
         uart_putc(*pStr);                    // remove this function call to improve performance

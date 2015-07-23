@@ -55,9 +55,6 @@ void init(void)
     
     // Create the PCB
     for (uint32_t pcb = 0; pcb < NUMB_PROC; pcb++) proc_ctrl_create_pcb(init_pcb + pcb);
-    
-    // test
-    //proc_ctrl_print_pcb(4);
 
     // Enable interrupts (ARM timer)
     SET32(INTR_BASE + INTR_ENABLE_IRQ_1_OFFSET, 

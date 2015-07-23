@@ -44,7 +44,6 @@ extern uint32_t _data_end;
 
 void print_memory_layout(void);
 
-
 void main(void)
 {
     print_memory_layout();
@@ -55,7 +54,7 @@ void main(void)
 
     // start all other processes
     proc_ctrl_init_proc();
-
+    
     // from now this is the idle process, allway´s ready and never end...
     for (;;) ;
     ASSERT(0);

@@ -32,6 +32,7 @@
 // Metadata
 #define     ARM32
 #define     ARMv6
+#define     ARM_SYS32_MODE_ONLY
 #define     PROCESSOR   ARM1176JZF-S
 #define     BOARD       RASPBERRY_PI_MOD_B
 
@@ -58,7 +59,6 @@
 #define     SYSTEM_START_ADDR                   0x00008000      // The system start address after GPU boot up
 #define     INTERRUPT_VECTOR_TABLE_ADDR         0x00000000      // The address of the reset vector
 
-// BIT MASKS
 #define     CPSR_SYSTEM_MODE_BM                 0x1F            // CPSR M[4:0]
 #define     CPSR_IRQ_BM                         0x80            // Processor Status Register - IRQ bit
 #define     CPSR_FIQ_BM                         0x40            // Processor Status Register - FIQ bit

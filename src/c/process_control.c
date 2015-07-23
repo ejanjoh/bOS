@@ -13,6 +13,9 @@
  *      ---------------------------------------------------
  *      ver 7       Updated
  *      ver 8       Updated
+ *      ver 9       Added methods for a processes to hand over to an other 
+ *                  process. Added methods for processes to enable and disable 
+ *                  interrupts
  *
  *
  *      Reference: See hardware_system.h
@@ -23,6 +26,7 @@
 #include "process_control.h"
 #include "assert.h"
 #include "io.h"
+#include "sys_def.h"
 
 
 /* Process Control Block list.
@@ -46,7 +50,6 @@ static uint32_t gCntxtCnt = 0;
  * being a process that alway's can run if no one else would like to do so.
  */
 pcb_t *gpCurrPCB = pcbList;
-
 
 void proc_ctrl_create_pcb(create_pcb_t *p)
 {
@@ -106,7 +109,8 @@ void proc_ctrl_create_pcb(create_pcb_t *p)
 #endif /* ARM32 */
 
     pPCB->totRuns = 0;
-    pPCB->fullCycle = 0;
+    pPCB->totReady = 0;
+    pPCB->totNotFullCycle = 0;
     pPCB->lstCntxtCnt = 0;
 
     // process state
@@ -160,15 +164,29 @@ uint32_t proc_ctrl_get_curr_pid(void)
 
 
 
-// To be created
+procPrio_t proc_ctrl_get_curr_prio(void)
+{
+    return gpCurrPCB->prio;
+}
+
+
+
 void proc_ctrl_context_switch(const procState_t returnState)
 {
-    (void) (returnState);
-    // add the assembler swi instruction and add the remaining in assembler code...
-    // This might be implemented in system.s instead
-    // :
-    // :
-    // ProcCtrlSchedule(...)
+    ASSERT(running < returnState);      // only accept process state ready and different versions of blocked
+    ASSERT(0x100 == SYSTEM_CALL_CONTEXT_SWITCH);
+    gpCurrPCB->totNotFullCycle++;
+    
+    DISABLE_INTERRUPT;
+#ifdef ARM32                // swi is backward compatible on ARMv7 as well but is called svc instead
+    __asm__ __volatile__ ("mov    r0, %[returnState]    \n\t"
+                          "swi    0x100                     \n\t"   // see ASSERT above
+                          : /* no output */
+                          : [returnState] "r" (returnState)
+                          : "cc", "r0", "memory");
+#endif /* ARM32 */
+    ENABLE_INTERRUPT;
+
     return;
 }
 
@@ -180,7 +198,7 @@ void proc_ctrl_change_state(const uint32_t pid, const procState_t newState)
 
     ASSERT(running < newState);                         // only accept ready and different versions of blocked
     ASSERT(HIGH_PID >= pid);                            // the process must exist
-    ASSERT(0 == pid);                                   // don't change state on the idle process
+    ASSERT(0 != pid);                                   // don't change state on the idle process
     ASSERT(running != p->state);                        // don't change state on the running process
     ASSERT(!(ready == p->state && newState != ready));  // don't change processes that are in ready state
 
@@ -222,7 +240,7 @@ void _proc_ctrl_schedule(const procState_t returnState)
     gpCurrPCB->lstCntxtCnt = ++gCntxtCnt;
     if (ready == returnState) {
         gpCurrPCB->totRuns++;
-        gpCurrPCB->fullCycle++;
+        gpCurrPCB->totReady++;
     }
     else gpCurrPCB->totRuns++;
 
@@ -259,40 +277,41 @@ void proc_ctrl_print_pcb(uint32_t pid)
 
     // processor registers
     printf(999, "\r\n PCB at %p:\
-                 \r\n   r0 =        %p\
-                 \r\n   r1 =        %p\
-                 \r\n   r2 =        %p\
-                 \r\n   r3 =        %p\
-                 \r\n   r4 =        %p\
-                 \r\n   r5 =        %p\
-                 \r\n   r6 =        %p\
-                 \r\n   r7 =        %p\
-                 \r\n   r8 =        %p\
-                 \r\n   r9 =        %p\
-                 \r\n   r10 =       %p\
-                 \r\n   r11 =       %p\
-                 \r\n   r12 =       %p\
-                 \r\n   r13 =       %p\
-                 \r\n   r14 =       %p\
-                 \r\n   spsr =      %p\
-                 \r\n   lr_exc =    %p\r\n", 
+                 \r\n   r0 =             %p\
+                 \r\n   r1 =             %p\
+                 \r\n   r2 =             %p\
+                 \r\n   r3 =             %p\
+                 \r\n   r4 =             %p\
+                 \r\n   r5 =             %p\
+                 \r\n   r6 =             %p\
+                 \r\n   r7 =             %p\
+                 \r\n   r8 =             %p\
+                 \r\n   r9 =             %p\
+                 \r\n   r10 =            %p\
+                 \r\n   r11 =            %p\
+                 \r\n   r12 =            %p\
+                 \r\n   r13 =            %p\
+                 \r\n   r14 =            %p\
+                 \r\n   spsr =           %p\
+                 \r\n   lr_exc =         %p\r\n", 
                  p, p->r0, p->r1, p->r2, p->r3, p->r4, p->r5, p->r6, p->r7, p->r8, 
                  p->r9, p->r10, p->r11, p->r12, p->r13, p->r14, p->spsr, p->lr_exc);
 
     // others
     printf(999, "\
-                 \r\n   pid =         %p\
-                 \r\n   prio =        %p\
-                 \r\n   mode =        %p\
-                 \r\n   state =       %p\
-                 \r\n   stackTop =    %p\
-                 \r\n   stackSize =   %p\
-                 \r\n   procName =    %s\
-                 \r\n   totRuns =     %p\
-                 \r\n   fullCycle =   %p\
-                 \r\n   lstCntxtCnt = %p\r\n",
+                 \r\n   pid =             %p\
+                 \r\n   prio =            %p\
+                 \r\n   mode =            %p\
+                 \r\n   state =           %p\
+                 \r\n   stackTop =        %p\
+                 \r\n   stackSize =       %p\
+                 \r\n   procName =        %s\
+                 \r\n   totRuns =         %p\
+                 \r\n   totReady =        %p\
+                 \r\n   totNotFullCycle = %p\
+                 \r\n   lstCntxtCnt =     %p\r\n",
                  p->pid, p->prio, p->mode, p->state, p->stackTop, p->stackSize, 
-                 p->procName, p->totRuns, p->fullCycle, p->lstCntxtCnt);
+                 p->procName, p->totRuns, p->totReady, p->totNotFullCycle, p->lstCntxtCnt);
 
     return;
 }
@@ -305,11 +324,38 @@ void proc_ctrl_print_curr_pcb(void)
     return;
 }
 
+
 // ******** Test only ***********
+/*
+void show_process_statistic(void)
+{
+    static uint32_t lstCntxtCnt = 0;
+    
+    if (lstCntxtCnt < pcbList[proc_ctrl_get_curr_pid()].lstCntxtCnt) {
+        DISABLE_INTERRUPT;
+        lstCntxtCnt = pcbList[proc_ctrl_get_curr_pid()].lstCntxtCnt;
+        printf(100, "\r curr proc: %u | ", proc_ctrl_get_curr_pid());
+        for (uint32_t pid = 0; pid < NUMB_PROC; pid++) {
+            printf(100, "%u, %u, %u, %u | ", 
+            pcbList[pid].totRuns, pcbList[pid].totReady, pcbList[pid].totNotFullCycle, pcbList[pid].lstCntxtCnt);
+        }
+        puts("\n\r", 10);
+
+        ENABLE_INTERRUPT;
+    }
+    
+    return;
+}
+
+uint32_t run = 0;
+
 void procA(void)
 {
     while (1) {
-        puts("\rprocess: A", 25);
+        show_process_statistic();
+        proc_ctrl_context_switch(ready);
+        if (0 == run) run = 1;
+        else run = 0;
     }
 
     return;
@@ -319,7 +365,10 @@ void procA(void)
 void procB(void)
 {
     while (1) {
-        puts("\rprocess: B", 25);
+        show_process_statistic();
+        if (run) {
+            proc_ctrl_context_switch(ready);
+        }
     }
 
     return;
@@ -329,7 +378,8 @@ void procB(void)
 void procC(void)
 {
     while (1) {
-        puts("\rprocess: C", 25);
+        show_process_statistic();
+        //proc_ctrl_context_switch(ready);
     }
 
     return;
@@ -337,14 +387,14 @@ void procC(void)
 
 
 void procD(void)
-{
+{    
     while (1) {
-        puts("\rprocess: D", 25);
+        show_process_statistic();
+        proc_ctrl_context_switch(ready);
     }
 
     return;
 }
 
-
-
+*/
 

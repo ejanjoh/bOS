@@ -12,14 +12,16 @@
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
  *      ver 7       File created
+ *      ver 9       Added methods for a processes to hand over to an other 
+ *                  process
  *
  *      Reference: See hardware_system.h
  *
  ******************************************************************************/
 
 #include "hardware_system.h"
-
-
+ #include "sys_def.h"
+ 
 
         /***********************************************************************
          * redirect_exception_vectors
@@ -287,9 +289,41 @@ svc_handl:
         /* Note: For some reason "stmia   r13!, {r0 - r14}^" does not increment the r13/sp register after
                  operation! Check up why... Until this has been solved we increment explicitly. */
         add     r13, r13, #(4*15)
-        mrs     r0, spsr
-        stmia   r13, {r0, r14}
+        mrs     r1, spsr
+        add     r14, r14, #4                            @ Adjust lr, compared with an irq, due to they are
+                                                        @ handled in different stage in the pipelining
+        stmia   r13, {r1, r14}
 
+        @ Handle svc call
+        movw    sp, #:lower16:__stack_svc_top
+        movt    sp, #:upper16:__stack_svc_top
+        ldr     r1, [lr, #-8]
+        bic     r1, r1, #0xff000000                     @ Get the svc number
+        cmp     r1, #SYSTEM_CALL_CONTEXT_SWITCH
+        bne     svc_not_handled$
+        bl      _proc_ctrl_schedule                     @ schedule a new process to run (r0 contain the return state)
+
+        @ Update the timer
+        movw    r0, #:lower16:DM_TIMER2_BASE
+        movt    r0, #:upper16:DM_TIMER2_BASE
+        mov     r1, #TIMER_IRQSTATUS_MAT_IT_FLAG_MASK
+        str     r1, [r0, #TIMER_IRQSTATUS_OFFSET]       @ clear the interrupt
+        mov     r1, #TCRR_INIT_VALUE_PAT
+        str     r1, [r0, #TIMER_TCRR_OFFSET]            @ Set the timer counter to the start value
+
+10:
+        @ Fetch registers from PCB
+        movw    r13, #:lower16:gpCurrPCB
+        movt    r13, #:upper16:gpCurrPCB
+        ldr     r13, [r13]
+        add     r13, r13, #68
+        ldmdb   r13!, {r0, r14}
+        msr     spsr_cxsf, r0
+        ldmdb   r13, {r0 - r14}^
+        nop
+        subs    pc, lr, #4
+
+svc_not_handled$:
         @ Notify on the exception
         movw    sp, #:lower16:__stack_svc_top
         movt    sp, #:upper16:__stack_svc_top

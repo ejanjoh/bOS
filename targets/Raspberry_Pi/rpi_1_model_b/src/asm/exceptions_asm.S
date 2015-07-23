@@ -13,6 +13,8 @@
  *      ---------------------------------------------------
  *      ver 7       Updated
  *      ver 8       Updated
+ *      ver 9       Added methods for a processes to hand over to an other 
+ *                  process
  *
  *
  *      Reference: See hardware_system.h
@@ -20,6 +22,7 @@
  ******************************************************************************/
  
  #include "hardware_system.h"
+ #include "sys_def.h"
  
  
  
@@ -58,14 +61,56 @@ undef_instr_handl_print_out$:
         .align 2
         .global _swi_handl
 _swi_handl:
-        ldr     r4, =puts                   @ as of now, just print out a note...
+        @ Store registers in PCB
+        ldr     r13, =gpCurrPCB
+        ldr     r13, [r13]
+        stmia   r13!, {r0 - r14}^
+        mrs     r1, spsr
+        add     r14, r14, #4                        @ Adjust lr, compared with an irq, due to they are
+                                                    @ handled in different stage in the pipelining
+        stmia   r13, {r1, r14}
+        
+        @ Handle SWI call
+        ldr     sp, =__stack_exc_irq_top
+        ldr     r1, [lr, #-8]
+        bic     r1, r1, #0xff000000                 @ Get the SWI number
+        cmp     r1, #SYSTEM_CALL_CONTEXT_SWITCH
+        bne     swi_not_handled$
+        bl      _proc_ctrl_schedule                 @ schedule a new process to run (r0 contain the return state)
+
+        @ Add a new timeout
+        ldr     r0, =SYSTEM_TIMER_BASE
+        ldr     r1, [r0, #SYSTEM_TIMER_CLO_OFFSET]
+        add     r1, r1, #SYS_TIMER_INTR_INTERVAL_PAT
+        str     r1, [r0, #SYSTEM_TIMER_C1_OFFSET]
+        
+        @ Clear timer channel
+        ldr     r1, =SYS_TIMER_CS_M1_MASK
+        str     r1, [r0, #SYSTEM_TIMER_CS_OFFSET]
+        
+        @ to be added: remove the timer interrupt comming from the GPU...
+
+10:
+        @ Fetch registers from PCB
+        ldr     r13, =gpCurrPCB
+        ldr     r13, [r13]
+        add     r13, r13, #68
+        ldmdb   r13!, {r0, r14}
+        msr     spsr_cxsf, r0
+        ldmdb   r13, {r0 - r14}^
+        nop
+        subs    pc, r14, #4
+
+swi_not_handled$:
+        ldr     r4, =puts                           @ as of now, just print out a note...
         ldr     r4, [r4]
-        ldr     r0, =swi_handl_print_out$
+        ldr     r0, =swi_not_handl_print_out$
         mov     r1, #100
         blx     r4
+        bl      proc_ctrl_print_curr_pcb
         b       _deadloop
-swi_handl_print_out$:
-.asciz "EXCEPTION: Software Interrupt Exception (not handled...)\r\n"
+swi_not_handl_print_out$:
+.asciz "\r\n\r\nEXCEPTION: Software Interrupt Exception (not handled...)\r\n\r\n"
 .align 2
 
 

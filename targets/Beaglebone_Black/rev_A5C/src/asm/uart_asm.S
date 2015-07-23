@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2013-11-08
- *      Updated:    2015-05-23
+ *      Updated:    2015-07-23
  *
  *      Project:    bOS/Beaglebone Black (rev A5C)
  *      File name:  uart_asm.S
@@ -12,6 +12,8 @@
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
  *      ver 5       File copied and updated
+ *      ver 9       Protected the UART0 used for serial communication with a 
+ *                  mutex.
  *
  *      Reference: See hardware_system.h
  *
@@ -36,6 +38,12 @@
         .align 2
         .global uart_getc
 uart_getc:
+        @ protect the read with a mutex
+        push    {lr}
+        movw    r0, #:lower16:gMutexUART0                   @ defined in init.c
+        movt    r0, #:upper16:gMutexUART0
+        bl      semaphore_wait
+
         movw    r1, #:lower16:UART0_BASE
         movt    r1, #:upper16:UART0_BASE
         
@@ -48,7 +56,14 @@ uart_getc:
 2:
         ldrh    r0, [r1, #UART_RHR_OFFSET]
         and     r0, r0, #0xFF
-        mov     pc, lr
+        push    {r0}
+        
+        movw    r0, #:lower16:gMutexUART0                   @ defined in init.c
+        movt    r0, #:upper16:gMutexUART0
+        bl      semaphore_signal 
+        
+        pop     {r0}
+        pop     {pc}
 
 
         /*********************************************************************** 
@@ -67,6 +82,12 @@ uart_getc:
         .align 2
         .global uart_putc
 uart_putc:
+        push    {r0, lr}
+        @ protect the write with a mutex
+        movw    r0, #:lower16:gMutexUART0                   @ defined in init.c
+        movt    r0, #:upper16:gMutexUART0
+        bl      semaphore_wait
+        pop     {r0, lr}
 
         and     r0, r0, #0xFF
         movw    r1, #:lower16:UART0_BASE
@@ -80,8 +101,13 @@ uart_putc:
         beq     1b
 2:
         strh    r0, [r1, #UART_THR_OFFSET]
-        mov     pc, lr
+        push    {lr}
 
+        movw    r0, #:lower16:gMutexUART0                   @ defined in init.c
+        movt    r0, #:upper16:gMutexUART0
+        bl      semaphore_signal 
+        
+        pop     {pc}
 
         /*********************************************************************** 
          * uart_puts
@@ -140,7 +166,7 @@ uart_puts:
         .align 2
         .global uart_setup_serial_uart0
 uart_setup_serial_uart0:
-        stmfd   sp!, {r7-r9}
+        stmfd   sp!, {r7-r9, lr}
 
         @ --- Software reset - UART ---
         movw    r0, #:lower16:UART0_BASE
@@ -260,9 +286,15 @@ uart_setup_serial_uart0:
         ldrh    r2, [r1]
         bic     r2, #UART_MDR1_MODE_SELECT_MASK             @ UART 16x mode
         strh    r2, [r1]
+        
+        @ Set up a mutex to protect the uart0 used for serial
+        @ communication.
+        movw    r0, #:lower16:gMutexUART0                   @ defined in init.c
+        movt    r0, #:upper16:gMutexUART0
+        mov     r1, #1
+        bl      semaphore_init
 
-        ldmfd   sp!, {r7-r9}
-        mov     pc, lr
+        ldmfd   sp!, {r7-r9, pc}
 
 
 

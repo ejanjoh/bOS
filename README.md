@@ -68,5 +68,10 @@
 > 	- [Beaglebone Black] on irq, context switch added
 > - ver 8:
 > 	- [bOS] Process schedule added
+> - ver 9:
+>   - [bOS] Added methods for processes to enable and disable interrupts
+>   - [bOS] Added methods to handle semaphores.
+>   - [Raspberry Pi] Added methods for a processes to hand over to an other process. Protected the UART0 used for serial communication with a mutex
+>   - [Beaglebone Black] Added methods for a processes to hand over to an other process. Protected the UART0 used for serial communication with a mutex
 >	  
 >		

@@ -12,6 +12,7 @@
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
  *      ver 7       Updated
+ *      ver 9       Init of a mutex to protect UART_0
  *
  *
  *      Reference: See hardware_system.h
@@ -22,21 +23,25 @@
 #include "hardware_system.h"
 #include "io.h"
 #include "process_control.h"
+#include "semaphore.h"
 
 
 extern uint32_t _start;                 // from linker script
 extern uint32_t __stack_sys_top;        // from linker script
 extern void main(void);                 // found in main.c
-extern void procA(void);                // found in process_control.c
-extern void procB(void);                // found in process_control.c
-extern void procC(void);                // found in process_control.c
-extern void procD(void);                // found in process_control.c
+extern void procA(void);                // found in semaphore.c
+extern void procB(void);                // found in semaphore.c
+extern void procC(void);                // found in semaphore.c
+extern void procD(void);                // found in semaphore.c
 
 
 // Respective process stack top and size, the base for this define are to be found in
 // the linker script kernel.ld
 #define STACK_SIZE          0x200           // stack_block_size    = 0x200;, see linker script
 #define STACK_PTR(pid)      ((uint32_t) &__stack_sys_top - (pid)*STACK_SIZE)
+
+// Mutex to protect the UART0 used for serial communication
+semaphore_t gMutexUART0;
 
 
 // Input to create the processes in the system
@@ -56,8 +61,8 @@ void init(void)
     // Create the PCB
     for (uint32_t pcb = 0; pcb < NUMB_PROC; pcb++) proc_ctrl_create_pcb(init_pcb + pcb);
     
-    // test
-    //proc_ctrl_print_pcb(4);
+    // init a mutex to protect the uart0 used serial in and out
+    semaphore_init(&gMutexUART0, MUTEX_INIT_VALUE);
 
     // Set up the timer needed for the interrups
     init_context_switch_timer2();
