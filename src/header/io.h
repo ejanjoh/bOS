@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2015-05-17
- *      Updated:    
+ *      Updated:    2015-09-08
  *
  *      Project:    bOS
  *      File name:  io.h
@@ -16,6 +16,7 @@
  *                  the interface differs somewhat.
  *      ver 6       Corrected the definition of putc and puts.
  *                  Added formated output by printf(...)
+ *      ver 10      Added and adjusted declarations for handling I/O buffers
  *
  *
  *      Reference: See hardware_system.h
@@ -27,6 +28,7 @@
 
 #include <stdarg.h>
 #include <stdint.h>
+#include "buffer.h"
 
 /* void putc(const char ch)
  *
@@ -42,7 +44,7 @@
  *
  * note:        None
  */
-extern void (* putc)(const char ch);
+void putc(const char c);
 
 
 /* void puts(const char *str, const uint32_t len)
@@ -60,7 +62,7 @@ extern void (* putc)(const char ch);
  *
  * note:        None
  */
-extern void (* puts)(const char *str, const uint32_t len);
+void puts(const char *str, const uint32_t len);
 
 
 /* int32_t printf(const uint32_t len, const char *format, ...)
@@ -89,5 +91,37 @@ extern void (* puts)(const char *str, const uint32_t len);
  * note:        None
  */
 int32_t printf(const uint32_t len, const char *format, ...);
+
+
+
+// *****************************************************************************
+
+
+// typedef for I/O buffers in the system
+typedef struct {
+    fifo_t fifo;
+    uint32_t lines;
+} io_buffer_t;
+
+extern io_buffer_t io_in;
+extern io_buffer_t io_out;
+
+// Init a I/O buffer
+void _io_buffer_init(io_buffer_t *io_buffer, char *buffer, const uint32_t size);
+
+// Get the number of lines added to the buffer from the buffer (not read yet)
+uint32_t _io_buffer_get_lines(io_buffer_t *io_buffer);
+
+// Write a char to a I/O buffer
+void _io_buffer_write_char(io_buffer_t *io_buffer, const char c);
+
+// Write a string to a I/O buffer
+void _io_buffer_write_string(io_buffer_t *io_buffer, const char *s);
+
+// Read a string from a I/O buffer
+void _io_buffer_read_string(io_buffer_t *io_buffer, const char *s);
+
+// Increase the counted number of lines in the buffer by one (to be used with care)
+void _io_buffer_add_line(io_buffer_t *io_buffer);
 
 #endif /* IO_H_ */

@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2013-07-13
- *      Updated:    2015-06-03
+ *      Updated:    2015-09.08
  *
  *      Project:    bOS
  *      File name:  process_control.h
@@ -16,6 +16,7 @@
  *      ver 9       Added methods for a processes to hand over to an other 
  *                  process. Added methods for processes to enable and disable 
  *                  interrupts
+ *      ver 10      Adjusted for new processes created.
  *
  *
  *      Reference: See hardware_system.h
@@ -49,7 +50,7 @@ extern int32_t gDisableInterruptCount;
 #define MAXLEN_PROCNAME 32
 
 // The total number of processes used in the system
-#define NUMB_PROC 5
+#define NUMB_PROC 7
 
 // The highest pid used in the system
 #define HIGH_PID  NUMB_PROC - 1

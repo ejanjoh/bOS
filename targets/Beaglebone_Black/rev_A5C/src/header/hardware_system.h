@@ -20,6 +20,8 @@
  *	        1.  TI Reference Manual AM335x Cortex A8 Microprocessors
  *          2.  ARM ARMv7
  *          3.  BeagleBone Black System Reference Manual
+ *          4.  TI SPRS717H –OCTOBER 2011–REVISED MAY 2015, 
+ *              AM335x Sitara™ Processors
  *
  *      NOTE 1: This file is used as header file both in C-files and in assembly
  *              files so keep the content to regular defines.
@@ -38,7 +40,6 @@
 // Access hardware registers, in C only...
 #define GET32(addr) (*(volatile unsigned int *) (addr))
 #define SET32(addr, val) (*((volatile unsigned int *) (addr)) = ((unsigned int) (val)))
-
 
 
 // define _endings using registers
@@ -134,7 +135,6 @@
 #define     HEAP_WATERMARK_PAT                  0xFF00FF00
 
 
-
 // Peripherals...
 
 // Interrupt Control Module (see chapter 6 in TI Reference Manual AM335x Cortex A8 Microprocessors)
@@ -142,16 +142,18 @@
 #define     INTC_SIR_IRQ_OFFSET                 0x40
 #define     INTC_CONTROL_OFFSET                 0x48
 #define     INTC_MIR_CLEAR2_OFFSET              0xC8
-#define     INTC_ILR68_OFFSET                   0x210
+#define     INTC_ILR68_OFFSET                   0x210                   // TIMER2
+#define     INTC_ILR72_OFFSET                   0x220                   // UART0
 
 #define     INTC_FIQ_IRQ_MASK                   0x01
-#define     INTC_MIR2_MASK                      (0x01 << 4)         // TIMER2
+#define     INTC_MIR2_MASK                      (0x01 << 4 | 0x01 << 8) // TIMER2 and UART0
 #define     INTC_ACTIVEIRQ_MASK                 0x7F
 #define     INTC_NEW_IRQ_AGR_MASK               0x01
 
-#define     INTC_INT_NUMBER_TIMER2_PAT          68                  // the interrupt number for timer 2
-#define     INTC_PRIO_0_PAT                     0x00                 // highest irq prio
-
+#define     INTC_INT_NUMBER_TIMER2_PAT          68                      // the interrupt number for timer 2 
+                                                                        // (used as context switch)
+#define     INTC_INT_NUMBER_UART0_PAT           72                      // the interrupt number for UART0 (RHR)
+#define     INTC_PRIO_0_PAT                     0x00                    // highest irq prio
 
 
 // Clock Module registers (see chapter 8 in TI Reference Manual AM335x Cortex A8 Microprocessors)
@@ -170,19 +172,26 @@
 #define     CM_DPLL_CLKSEL_TIMER2_CLK_CLKSEL_CLK_M_OSC_MASK     0x01
 
 
-
 // Control Module (see chapter 9 in TI Reference Manual AM335x Cortex A8 Microprocessors)
-#define     CTRL_MOD_BASE                               0x44E10000
-#define     CTRL_MOD_OFFSET_CONF_UART0_RXD_OFFSET       0x970
-#define     CTRL_MOD_OFFSET_CONF_UART0_TXD_OFFSET       0x974
+#define     CTRL_MODE_BASE                      0x44E10000
+#define     CTRL_MODE_CONF_UART0_RXD_OFFSET     0x970
+#define     CTRL_MODE_CONF_UART0_TXD_OFFSET     0x974
 
-#define     CTRL_MODE_PULLUP_PULLDOWN_MASK      (1 << 3)        // Control Module pullup/pulldown
-#define     CTRL_MODE_RECEIVER_MASK             (1 << 5)        // Control Module receiver
+#define     CTRL_MODE_PULLUDEN_MASK             (1 << 3)    // Pad pullup/pulldown enable (1 = pullup/pulldown disabled)
+#define     CTRL_MODE_PULLTYPESEL_MASK          (1 << 4)    // Pad pullup/pulldown type selection (1 = Pullup selected)
+#define     CTRL_MODE_RXACTIVE_MASK             (1 << 5)    // Input enable value for the Pad. Set to 0 for output only. 
+                                                            // Set to 1 for input or output.
 
+#define     CTRL_MODE_UART0_RX_TX_MUXMODE_PAT   0x00        // Mux mode setting for UART0 RX and TX
 
 
 // UART registers ( see chapter 19 in TI Reference Manual AM335x Cortex A8 Microprocessors)
 #define     UART0_BASE                          0x44E09000
+#define     UART1_BASE                          0x48022000
+#define     UART2_BASE                          0x48024000
+#define     UART3_BASE                          0x481A6000
+#define     UART4_BASE                          0x481A8000
+#define     UART5_BASE                          0x481AA000
 #define     UART_THR_OFFSET                     0x00
 #define     UART_RHR_OFFSET                     0x00
 #define     UART_DLL_OFFSET                     0x00
@@ -190,6 +199,7 @@
 #define     UART_IER_UART_OFFSET                0x04
 #define     UART_EFR_OFFSET                     0x08
 #define     UART_FCR_OFFSET                     0x08
+#define     UART_IIR_OFFSET                     0x08
 #define     UART_LCR_OFFSET                     0x0C
 #define     UART_MCR_OFFSET                     0x10
 #define     UART_LSR_UART_OFFSET                0x14
@@ -208,13 +218,16 @@
 #define     UART_DLL_CLOCK_LSB_MASK             0x1A
 #define     UART_DLH_CLOCK_MSB_MASK             0x00
 #define     UART_IER_INTERRUPT_DISABLED_MASK    0x00
+#define     UART_IER_INTERRUPT_RHR_ENABLED      0x01
 #define     UART_LCR_8_BIT_CHAR_LENGTH_MASK     0x03
 #define     UART_LCR_1_STOP_BIT_MASK            (0x01 << 2)
 #define     UART_EFR_ENHANCED_EN_MASK           (0x1 << 4)
 #define     UART_MCR_TCR_TLR_MASK               (0x1 << 6)
 #define     UART_LSR_UART_RXFIFOE_MASK          0x01
 #define     UART_LSR_UART_TXFIFOE_MASK          0x20
-
+#define     UART_IIR_IT_PEND_MASK               0x01                // = 0x01 No interrupt pending
+#define     UARI_IIR_IT_TYPE_MASK               0x3E
+#define     UART_IIR_IT_RHR_PEND_MASK           0x04
 
 
 // Timer registers (see chapter 20 in TI Reference Manual AM335x Cortex A8 Microprocessors)
@@ -227,11 +240,10 @@
 
 #define     TIMER_IRQ_ENABLE_FOR_MATCH_MASK     0x01
 #define     TCLR_START_VALUE_MASK               (0x01 << 0 | 0x01 << 6)
-#define     TIMER_IRQSTATUS_MAT_IT_FLAG_MASK    0x01
+#define     TIMER_IRQSTATUS_MAT_IT_FLAG_MASK    0x01                // shouldn't we let this one be 0x07 instead?
 
-#define     SYS_TIMER_INTR_INTERVAL_PAT         0x1700000           // The time between two interrupts
+#define     SYS_TIMER_INTR_INTERVAL_PAT         0x3B00              // The time (in ticks) between two interrupts
 #define     TCRR_INIT_VALUE_PAT                 0x00
-
 
 
 // GPIO (see chapter 25 in TI Reference Manual AM335x Cortex A8 Microprocessors)

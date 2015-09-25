@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2015-05-19
- *      Updated:    2015-06-27
+ *      Updated:    2015-09-22
  *
  *      Project:    bOS/Beaglebone Black (rev A5C)
  *      File name:  start.S
@@ -13,6 +13,7 @@
  *      ---------------------------------------------------
  *      ver 5       File created
  *      ver 7       Added support to handle context switching
+ *      ver 10      Corrected an error on UART0 mux mapping
  *
  *      Reference: See hardware_system.h
  *
@@ -125,7 +126,8 @@ _start:
         @ Add watermark patterns into the heap
         movw    r0, #:lower16:_heap_start
         movt    r0, #:upper16:_heap_start
-        ldr     r1, =HEAP_WATERMARK_PAT
+        movw    r1, #:lower16:HEAP_WATERMARK_PAT
+        movt    r1, #:upper16:HEAP_WATERMARK_PAT
         movw    r2, #:lower16:_heap_end
         movt    r2, #:upper16:_heap_end
         sub     r2, r2, r0
@@ -161,24 +163,25 @@ _start:
         mov     r0, #GPIO1_ALL_USR_LEDS_MASK
         bl      gpio_usrled_on
 
-        @ Set up and enable the interrupt vector table
+        @ Set up and enable the new interrupt vector table
         bl      redirect_exception_vectors
+        
+        @ Set up the mux mapping needed for UART0 (needed for serial communication)
+        movw    r0, #:lower16:CTRL_MODE_BASE
+        movt    r0, #:upper16:CTRL_MODE_BASE
+        mov     r1, #CTRL_MODE_UART0_RX_TX_MUXMODE_PAT
+        orr     r1, #CTRL_MODE_PULLUDEN_MASK                @ Pullup/pulldown disabled
+        orr     r1, #CTRL_MODE_PULLTYPESEL_MASK
+        
+        @    - Setup the mux for UART0 Rx serial line
+        orr     r1, #CTRL_MODE_RXACTIVE_MASK                @ Receiver enabled
+        str     r1, [r0, #CTRL_MODE_CONF_UART0_RXD_OFFSET]
 
-        @ Set up the mux mapping needed for UART_0 (needed for serial communication)
-        movw    r0, #:lower16:CTRL_MOD_BASE
-        movt    r0, #:upper16:CTRL_MOD_BASE
-        mov     r1, #0x0                                    @ mux selected
-        orr     r1, r1, #CTRL_MODE_PULLUP_PULLDOWN_MASK     @ Pullup/pulldown disabled
-        
-        @    - Set up the mux for Rx
-        orr     r1, r1, #CTRL_MODE_RECEIVER_MASK            @  Receiver enabled
-        str     r2, [r0, #CTRL_MOD_OFFSET_CONF_UART0_RXD_OFFSET]
-        
-        @    - Set up the mux for Tx
-        bic     r2, r2, #CTRL_MODE_RECEIVER_MASK            @ Receiver disabled
-        str     r2, [r0, #CTRL_MOD_OFFSET_CONF_UART0_TXD_OFFSET]
-        
-        @  Enable the interface and functional clocks on UART_0
+        @    - Setup the mux for UART0 Tx serial line
+        bic     r1, r1, #CTRL_MODE_RXACTIVE_MASK            @ Receiver disabled
+        str     r1, [r0, #CTRL_MODE_CONF_UART0_TXD_OFFSET]
+
+        @  Enable the interface and functional clocks on UART0
         movw    r0, #:lower16:CM_WKUP_BASE
         movt    r0, #:upper16:CM_WKUP_BASE
         mov     r1, #CM_WKUP_FUNCT_INTRFC_CLCK_MASK
@@ -256,6 +259,7 @@ _deadloop:
 
         b       10b
 
+
         /***********************************************************************
          * clock_enable_timer2
          *
@@ -297,5 +301,18 @@ clock_enable_timer2:
         mov     pc, lr
 
 
-
+        /*********************************************************************** 
+         * _get_stack_ptr(void)
+         *
+         * Get the current stack pointer
+         *
+         * C prototype: uint32_t *_get_stack_ptr(void) 
+         **********************************************************************/
+        .section .text
+        .code 32
+        .align 2
+        .global _get_stack_ptr
+_get_stack_ptr:
+        mov     r0, sp
+        mov     pc, lr
 

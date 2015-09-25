@@ -24,50 +24,38 @@
 
 
         /*********************************************************************** 
-         * uart_getc
+         * _uart_getc
          *
          * Get a char on UART0/serial interface. Note, this "function" will hang
          * until a char is recived on the UART0.
          *
          * out:     - char from UART0
          *
-         * C prototype: char uart_getc(void) 
+         * C prototype: char _uart_getc(void) 
          **********************************************************************/
         .section .text
         .code 32
         .align 2
-        .global uart_getc
-uart_getc:
-        @ protect the read with a mutex
-        push    {lr}
-        movw    r0, #:lower16:gMutexUART0                   @ defined in init.c
-        movt    r0, #:upper16:gMutexUART0
-        bl      semaphore_wait
-
+        .global _uart_getc
+_uart_getc:
         movw    r1, #:lower16:UART0_BASE
         movt    r1, #:upper16:UART0_BASE
-        
+/*
         @ Wait unil there is a char to be read on the UART0.
 1:
         ldrh    r2, [r1, #UART_LSR_UART_OFFSET]
         and     r2, r2, #UART_LSR_UART_RXFIFOE_MASK         @ are there any chars?
         cmp     r2, #0
         beq     1b
+*/
 2:
         ldrh    r0, [r1, #UART_RHR_OFFSET]
         and     r0, r0, #0xFF
-        push    {r0}
-        
-        movw    r0, #:lower16:gMutexUART0                   @ defined in init.c
-        movt    r0, #:upper16:gMutexUART0
-        bl      semaphore_signal 
-        
-        pop     {r0}
-        pop     {pc}
 
+        mov     pc, lr
 
         /*********************************************************************** 
-         * uart_putc
+         * _uart_putc 
          *
          * Transmit or put a char on UART0/serial interface (according to the 
          * BBB System Reference Manual the serial pins/serial debug port are 
@@ -75,42 +63,42 @@ uart_getc:
          *
          * in: r0 - char to be placed on UART0
          *
-         * C prototype: void uart_putc(const char c) 
+         * C prototype: void _uart_putc (const char c) 
          **********************************************************************/
         .section .text
         .code 32
         .align 2
-        .global uart_putc
-uart_putc:
-        push    {r0, lr}
-        @ protect the write with a mutex
-        movw    r0, #:lower16:gMutexUART0                   @ defined in init.c
-        movt    r0, #:upper16:gMutexUART0
-        bl      semaphore_wait
-        pop     {r0, lr}
-
+        .global _uart_putc 
+_uart_putc:
         and     r0, r0, #0xFF
         movw    r1, #:lower16:UART0_BASE
         movt    r1, #:upper16:UART0_BASE
 
-        /* Secure that UART is ready to tramsmit a char */
+        @ Secure that UART is ready to tramsmit a char 
 1:
         ldrh    r2, [r1, #UART_LSR_UART_OFFSET]
         and     r2, r2, #UART_LSR_UART_TXFIFOE_MASK         @ ready to transmit?
         cmp     r2, #0
         beq     1b
-2:
-        strh    r0, [r1, #UART_THR_OFFSET]
-        push    {lr}
-
-        movw    r0, #:lower16:gMutexUART0                   @ defined in init.c
-        movt    r0, #:upper16:gMutexUART0
-        bl      semaphore_signal 
         
-        pop     {pc}
+        cmp     r0, #'\n'                                   @ '\n' is used as end of line char in the system
+        bne     20f
+10:
+        mov     r3, #'\r'
+        strh    r3, [r1, #UART_THR_OFFSET]
+11:
+        ldrh    r2, [r1, #UART_LSR_UART_OFFSET]
+        and     r2, r2, #UART_LSR_UART_TXFIFOE_MASK         @ ready to transmit?
+        cmp     r2, #0
+        beq     11b
+        strh    r0, [r1, #UART_THR_OFFSET]
+20:
+        strh    r0, [r1, #UART_THR_OFFSET]
+100:      
+        mov     pc, lr
 
         /*********************************************************************** 
-         * uart_puts
+         * _uart_puts
          *
          * Transmit or put a null terminated string on UART0/serial interface.
          * If there is a null termination before the len:th char it will stop 
@@ -120,13 +108,13 @@ uart_putc:
          * in: r0 - a pointer to a null terminated string
          *     r1 - the maximum lenght of the string
          *
-         * C prototype: void uart_puts(char *str, uint32_t len) 
+         * C prototype: void _uart_puts(char *str, uint32_t len) 
          **********************************************************************/
         .section .text
         .code 32
         .align 2
-        .global uart_puts
-uart_puts:
+        .global _uart_puts
+_uart_puts:
         stmfd   sp!, {r4, lr}
         mov     r2, r0
         ldrb    r0, [r2]
@@ -138,7 +126,7 @@ uart_puts:
         beq     10f
 
         stmfd   sp!, {r0-r3}
-        bl      uart_putc
+        bl      _uart_putc 
         ldmfd   sp!, {r0-r3}
 
         sub     r1, r1, #1
@@ -266,7 +254,8 @@ uart_setup_serial_uart0:
         mov     r2, #UART_REGISTER_OPERATIONAL_MODE_MASK
         strh    r2, [r0, #UART_LCR_OFFSET]
 9:
-        mov     r2, #UART_IER_INTERRUPT_DISABLED_MASK       @ Interrupt isn´t enabled
+        @mov     r2, #UART_IER_INTERRUPT_DISABLED_MASK       @ Interrupt isn´t enabled
+        mov     r2, #UART_IER_INTERRUPT_RHR_ENABLED         @ RHR interrupt enabled
         strh    r2, [r0, #UART_IER_UART_OFFSET]
 10:
         mov     r2, #UART_REG_CONFIG_MODE_B_MASK
@@ -286,13 +275,6 @@ uart_setup_serial_uart0:
         ldrh    r2, [r1]
         bic     r2, #UART_MDR1_MODE_SELECT_MASK             @ UART 16x mode
         strh    r2, [r1]
-        
-        @ Set up a mutex to protect the uart0 used for serial
-        @ communication.
-        movw    r0, #:lower16:gMutexUART0                   @ defined in init.c
-        movt    r0, #:upper16:gMutexUART0
-        mov     r1, #1
-        bl      semaphore_init
 
         ldmfd   sp!, {r7-r9, pc}
 

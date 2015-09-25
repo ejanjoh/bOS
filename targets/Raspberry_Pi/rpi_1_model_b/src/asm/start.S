@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2015-05-07
- *      Updated:    2015-06-01
+ *      Updated:    2015-09-08
  *
  *      Project:    bOS/Raspberry Pi (rev rpi_1_model_b)
  *      File name:  start.S
@@ -14,6 +14,8 @@
  *      ver 3       File created
  *      ver 5       _deadloop updated
  *      ver 7       Enable interrupts
+ *      ver 10      Updated _deadloop.
+ *                  Added "function" _get_stack_ptr.
  *
  *      Reference: See hardware_system.h
  *
@@ -108,7 +110,7 @@ reset_handl$:
         add     r2, r2, #4
         lsr     r2, r2, #2                      @ = # of words to be set to watermark pattern
         bl      memset32
-
+        
         @ Zero out the .bss sector
         ldr     r0, =_bss_start
         mov     r1, #0
@@ -209,6 +211,17 @@ reset_handl$:
         @ Perform other initializations...
         bl      init
         
+        @ Disturb the timer interrupt coming from the GPU so they not affect the MPU context
+        ldr     r0, =SYSTEM_TIMER_BASE
+        ldr     r1, [r0, #SYSTEM_TIMER_CLO_OFFSET]
+        add     r1, r1, #SYS_TIMER_INTR_INTERVAL_PAT
+        str     r1, [r0, #SYSTEM_TIMER_C0_OFFSET]
+        str     r1, [r0, #SYSTEM_TIMER_C2_OFFSET]
+        
+        @ Clear timer channel (M0 + M2)
+        ldr     r1, =SYS_TIMER_CS_M0_MASK | SYS_TIMER_CS_M2_MASK
+        str     r1, [r0, #SYSTEM_TIMER_CS_OFFSET]
+        
         @ Enable interrupt for handling timers, UARTs etc...
         mrs     r4, cpsr
         bic     r4, r4, #CPSR_IRQ_BM
@@ -231,6 +244,11 @@ reset_handl$:
         .align 2
         .global _deadloop
 _deadloop:
+        @ Disable IRQ/FIQ on MPU
+        mrs     r4, cpsr
+        orr     r4, r4, #(CPSR_IRQ_BM | CPSR_FIQ_BM)
+        msr     cpsr_c, r4
+
         @ Turn the ACT led on and off to indicate an error or issue that hang the system (e.g. an assert)
 10:
         mov     r0, #GPIO_PIN_16_MASK
@@ -253,18 +271,31 @@ _deadloop:
 
 @ We have major problems...
 reserved$:
-        ldr     r4, =puts
+        ldr     r4, =_puts 
         ldr     r4, [r4]
         ldr     r0, =reserved_print_out$
         mov     r1, #100
         blx     r4
         b       _deadloop
 reserved_print_out$:
-.asciz "RESERVED in IVT (MAJOR PROBLEMS)r\n"
+.asciz "RESERVED in IVT (MAJOR PROBLEMS)\n"
 .align 2
 
 
-
+        /*********************************************************************** 
+         * _get_stack_ptr(void)
+         *
+         * Get the current stack pointer
+         *
+         * C prototype: uint32_t *_get_stack_ptr(void) 
+         **********************************************************************/
+        .section .text
+        .code 32
+        .align 2
+        .global _get_stack_ptr
+_get_stack_ptr:
+        mov     r0, sp
+        mov     pc, lr
 
 
 

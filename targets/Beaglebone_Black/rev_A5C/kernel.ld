@@ -3,7 +3,7 @@
 *   Created by:     Jan Johansson (ejanjoh)
 *   Copyright:      Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
 *   Date:           2013-10-11
-*   Updated:        2014-01-02
+*   Updated:        2015-09-23
 *
 *       Project:    bOS/Beaglebone Black (rev A5C)
 *       File name:  kernel.ld
@@ -11,6 +11,7 @@
 *
 *   bOS version history mapped on changes in this file:
 *   ---------------------------------------------------
+*   ver 10          Increased the sys stack and number of processes running
 *
 ******************************************************************************/
 
@@ -99,12 +100,12 @@
  *   .init
  *   (.heap)
  *   .stack
- *      - mode_sys: 0x1000
- *      - mode_und: 0x200
- *      - mode_abt: 0x200
- *      - mode_svc: 0x200
- *      - mode_irq: 0x200
- *      - mode_fiq: 0x200
+ *      - mode_sys: 16*5*0x400
+ *      - mode_und: 0x400
+ *      - mode_abt: 0x400
+ *      - mode_svc: 0x400
+ *      - mode_irq: 0x400
+ *      - mode_fiq: 0x400
  * _CPY_TO_L3_SDRAM_START
  *   .text
  *   .bss
@@ -113,8 +114,10 @@
  * _CPY_TO_L3_SDRAM_END
  */
 
-heap_size           = 0x1000;                       /* heap size */
-stack_block_size    = 0x200;                        /* stack block size */
+heap_size               = 0x1000;                       /* heap size */
+stack_block_size        = 0x400;                        /* stack block size */
+stack_sys_block_size    = stack_block_size*5;           /* size of sys stack size per proc */
+nbr_sys_proc            = 16;                           /* the number of sys proc running on the system */
 
 
 /* constitute the memory layout (memory map) for the system */
@@ -148,7 +151,8 @@ SECTIONS {
     _stack_start = .;
     .stack : {
         __stack_sys_bottom = .;
-        . = . + 5*stack_block_size;
+        /*. = . + 16*5*stack_block_size;*/
+        . = . + stack_sys_block_size*nbr_sys_proc;
         __stack_sys_top = .;
 
         __stack_und_bottom = .;

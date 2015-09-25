@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2015-05-12
- *      Updated:    
+ *      Updated:    2015-09-08
  *
  *      Project:    bOS/Raspberry Pi (rev rpi_1_model_b)
  *      File name:  uart.c
@@ -16,6 +16,8 @@
  *                  Adjusted end of line format
  *      ver 9       Protected the UART0 used for serial communication with a 
  *                  mutex.
+ *      ver 10      Added functionality for read UART input.
+ *                  Changed handling of e.o.l. chars
  *
  *
  *      Reference: See hardware_system.h
@@ -26,9 +28,8 @@
 #include "uart.h"
 #include "hardware_system.h"
 #include "semaphore.h"
+#include "assert.h"
 
-// Mutex to protect the UART0 used for serial communication
-semaphore_t gMutexUART0;
 
 
 /* The RPI has two UARTs, one mini-UART and one PL011 UART; this is the initialization
@@ -70,7 +71,7 @@ void uart_init(void)
      * - Disable two stop bits
      * - Disable parity */
     SET32(UART_BASE + UART_LCRH_OFFSET, UART_LCRH_ENABLE_8_BIT_DATA_MASK);      // FIFO disabled
-    //SET32(UART_BASE + UART_OFFSET_LCRH, UART_LCRH_ENABLE_8_BIT_DATA | UART_LCRH_ENABLE_FIFO);
+    //SET32(UART_BASE + UART_LCRH_OFFSET, UART_LCRH_ENABLE_8_BIT_DATA_MASK | UART_LCRH_ENABLE_FIFO_MASK);
 
     // Set FIFO interrupt trigger level 1/8 full
     SET32(UART_BASE + UART_IFLS_OFFSET, UART_IFLS_FIFO_LEVEL_SELECT_PAT);
@@ -81,51 +82,67 @@ void uart_init(void)
     // Enable RX, TX and the UART
     SET32(UART_BASE + UART_CR_OFFSET, UART_CR_RX_ENABLE_MASK | UART_CR_TX_ENABLE_MASK | UART_CR_UART_ENABLE_MASK);
 
-    // init a mutex to protect the uart0 used serial in and out
-    semaphore_init(&gMutexUART0, MUTEX_INIT_VALUE);
-
     return;
 }
+
 
 // Get the first character in the PL011 UARTs FIFO
-char uart_getc(void)
+char _uart_getc(void)
 {
     // If the RX FIFO is empty, wait...
-    while (GET32(UART_BASE + UART_FR_OFFSET) & UART_FR_RX_FIFO_EMPTY_MASK);
+    while (GET32(UART_BASE + UART_FR_OFFSET) & UART_FR_RX_FIFO_EMPTY_MASK) ;
 
-    return (char) GET32(UART_BASE +  UART_DR_OFFSET);
+    return (char) GET32(UART_BASE + UART_DR_OFFSET);
 }
+
 
 // Put a character in the PL011 UARTs FIFO for transmit
-void uart_putc(const char ch)
+void _uart_putc(const char ch)
 {
-    semaphore_wait(&gMutexUART0);
-
-    /* If the transmit FIFO is full, wait... */
+    // If the transmit FIFO is full, wait...
     while (GET32(UART_BASE + UART_FR_OFFSET) & UART_FR_TRANSMIT_FIFO_FULL_MASK);
-
-    SET32(UART_BASE +  UART_DR_OFFSET, ch);
     
-    semaphore_signal(&gMutexUART0);
-    return;
-}
-
-
-// Put a null terminated string at the PL011 UARTs FIFO for transmit
-void uart_puts(const char *str, const uint32_t len)
-{
-    const char * pStr = str;
-    uint32_t n = 0;
-
-
-    while (('\0' != *pStr) && (n < len)) {
-        uart_putc(*pStr);                    // remove this function call to improve performance
-        pStr++;
-        n++;
+    if ('\n' != ch) {
+        SET32(UART_BASE +  UART_DR_OFFSET, ch);
+    }
+    else {
+        SET32(UART_BASE +  UART_DR_OFFSET, '\r');
+        // If the transmit FIFO is full, wait...
+        while (GET32(UART_BASE + UART_FR_OFFSET) & UART_FR_TRANSMIT_FIFO_FULL_MASK);
+        SET32(UART_BASE +  UART_DR_OFFSET, '\n');
     }
 
     return;
 }
 
+
+// Put a null terminated string at the PL011 UARTs FIFO for transmit
+void _uart_puts(const char *str, const uint32_t len)
+{
+    char *p = (char *) str;
+    
+    ASSERT(sizeof(p) < len);
+    ASSERT(NULL != p);
+    ASSERT('\0' != *p);
+    
+       
+    while ('\0' != *p) {
+        // If the transmit FIFO is full, wait...
+        while (GET32(UART_BASE + UART_FR_OFFSET) & UART_FR_TRANSMIT_FIFO_FULL_MASK);
+
+        if ('\n' != *p) {
+            SET32(UART_BASE +  UART_DR_OFFSET, *p++);
+        }
+        else {
+            p++;
+            SET32(UART_BASE +  UART_DR_OFFSET, '\r');
+            // If the transmit FIFO is full, wait...
+            while (GET32(UART_BASE + UART_FR_OFFSET) & UART_FR_TRANSMIT_FIFO_FULL_MASK);
+            SET32(UART_BASE +  UART_DR_OFFSET, '\n');
+        }
+    } // while (...)
+
+    return;
+}
 
 

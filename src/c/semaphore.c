@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2015-07-20
- *      Updated:    
+ *      Updated:    2015-09-08
  *
  *      Project:    bOS
  *      File name:  semaphore.c
@@ -12,6 +12,8 @@
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
  *      ver 9       created
+ *      ver 10      Changed how the semaphore_signal behave; it should always
+ *                  perform a context switch at the end of function. 
  *
  *
  *      Reference: 
@@ -72,9 +74,9 @@ void semaphore_signal(semaphore_t *pSemaphore)
     }
     else {
         remove_process_from_wating_list(pSemaphore);
-        proc_ctrl_context_switch(ready);
     }
-
+    
+    proc_ctrl_context_switch(ready);
     ENABLE_INTERRUPT;
     return;
 }
@@ -131,11 +133,15 @@ void print_wait_list(semaphore_t *pSemaphore)
                pSemaphore->process_wait_list[i].pid, pSemaphore->process_wait_list[i].prio, 
                pSemaphore->waiting, pSemaphore->count);
     }
-    puts("\r\n", 100);
+    puts("\n", 100);
 
     return;
 }
 
+
+
+// ******** Test only ***********
+/*
 void test_mutex(void)
 {
     static uint32_t notPass = 0;
@@ -143,18 +149,18 @@ void test_mutex(void)
     
     uint32_t pid = proc_ctrl_get_curr_pid();
     
-    printf(100, "process %u has entered the mutex test function\r\n", pid);
+    printf(100, "process %u has entered the mutex test function\n", pid);
     print_wait_list(&mutexTest);
     
     semaphore_wait(&mutexTest);
-    printf(100, "process %u has entered the protected area\r\n", pid);
+    printf(100, "process %u has entered the protected area\n", pid);
     print_wait_list(&mutexTest);
     
     if (!notPass++) proc_ctrl_context_switch(ready);
     
     semaphore_signal(&mutexTest);
     
-    printf(100, "process %u has left the protected area\r\n", pid);
+    printf(100, "process %u has left the protected area\n", pid);
     print_wait_list(&mutexTest);
 
     return;
@@ -192,7 +198,7 @@ void procD(void)
     while (1) ;
     return;
 }
-
+*/
 
 
 

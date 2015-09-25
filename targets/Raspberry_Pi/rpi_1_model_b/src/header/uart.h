@@ -27,7 +27,6 @@
 void uart_init(void);
 
 // Do not use this functions directly, use the io functions in io.h instead...
-char uart_getc(void);
 void uart_putc(const char ch);
 void uart_puts(const char *str, const uint32_t len);
 

@@ -5,11 +5,15 @@
 > 1.	Introduction
 > 2.	File Structure
 > 3.	Revision History
+> 4.	Key Words
+> 5.	To Do
 
 
 > ## Introduction
 >
-> To be added...
+> The idea behind this project is to make an simple prototype for a realtime operating system. It's not in any respects to be seen as complete nor fully functional. It's just a prototype and "just for fun". One basic principle used is that the processes should as long as possible take the 'costs' associated to respective process and in this sense try to minimize the system overhead. There are obvious drawbacks, but in a very small embedded system where the developer have full control over the implementation this drawbacks is mitigated somewhat. In addition, there will not be any distinction between kernel space and user land, it's a mix.
+> 
+> I wrote the first draft some years ago and based it on a Raspberry Pi. On this updated version I have extended the platforms to Beaglebone Black as well. It should be possible to a limited extra work add other platforms, especially ARM based. 
 >
 >
 
@@ -73,5 +77,21 @@
 >   - [bOS] Added methods to handle semaphores.
 >   - [Raspberry Pi] Added methods for a processes to hand over to an other process. Protected the UART0 used for serial communication with a mutex
 >   - [Beaglebone Black] Added methods for a processes to hand over to an other process. Protected the UART0 used for serial communication with a mutex
->	  
->		
+> - ver 10: 
+> 	- [bOS] Command Line Interface (CLI) added
+> 	- [bOS] I/O stream buffers added and I/O functions changed accordingly
+> 	- [bOS] Changed the semaphore_signal behavior
+> 	- [bOS] Changed e.o.l. characters from "\r\n" to "\n"
+> 	- [Raspberry Pi] UART interrupts enabled to get terminal serial input to the system 
+> 	- [Beaglebone Black] UART interrupts enabled to get terminal serial input to the system 
+
+
+>## Key Words
+> Assembler, C, ARM, ARMv6, ARMv7, Bare Metal, Operating System (OS), Rasberry Pi (RPI), Beaglebone Black (BBB), Stack, GPIO, Led, Exception Vectors, UART/Serial Communication, Rx/Tx, RHR/THR, Timer, Interrupt, IRQ, SVC/SWI, Context Switch, Scheduler, __aeabi_uidiv, I/O, Semaphore, Mutex, Assert, Process Control Block (PCB), Command Line Interface (CLI), I/O stream buffers…
+
+>## To Do
+> - Add a heap and dynamic memory allocation (a heap already exist in the system but isn't used…)
+> - Add inter process communication
+> - Update information on the system and make a cleanup in the code.
+
+

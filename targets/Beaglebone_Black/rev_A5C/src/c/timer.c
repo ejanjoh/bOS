@@ -58,7 +58,7 @@ void init_context_switch_timer2(void)
 // just a temporary function to test that the interrupt works as intended. To be removed and replaced by a scheduler!
 /*void update_context_switch_timer2(void)
 {
-    //puts("System timer has expired - system has been interrupted... \r\n", 100);
+    //_puts("System timer has expired - system has been interrupted... \n", 100);
 
     // clear the interrupt
     SET32(DM_TIMER2_BASE + TIMER_IRQSTATUS_OFFSET, TIMER_IRQSTATUS_MAT_IT_FLAG_MASK);

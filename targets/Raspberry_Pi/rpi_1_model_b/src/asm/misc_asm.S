@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2015-05-09
- *      Updated:    2015-05-19
+ *      Updated:    2015-09-08
  *
  *      Project:    bOS/Raspberry Pi (rev rpi_1_model_b)
  *      File name:  misc_asm.S
@@ -13,16 +13,18 @@
  *      ---------------------------------------------------
  *      ver 3       File created
  *      ver 5       __aeabi_uidiv added
+ *      ver 10      get_system_timer_32 added
  *
  *      Reference: See hardware_system.h
  *
  ******************************************************************************/
- 
+
+#include "hardware_system.h"
  
          /*********************************************************************** 
          * memset32
          *
-         * Sets the first words of the block of memory pointed by pAddr to the
+         * Set the first words of the block of memory pointed by pAddr to the
          * specified value.
          *
          * C prototype: void memset32(void *pAddr, 
@@ -151,7 +153,21 @@ __aeabi_uidiv:
         ldmfd   sp!, {r4, pc}
 
 
-
+        /*********************************************************************** 
+         * get_system_timer_32
+         *
+         * Get the 32 bit value of the system timer.
+         *
+         * C prototype: uint32_t get_system_timer_32(void)
+         **********************************************************************/
+        .section .text
+        .code 32
+        .align 2
+        .global get_system_timer_32
+get_system_timer_32:
+        ldr     r1, =SYSTEM_TIMER_BASE
+        ldr     r0, [r1, #SYSTEM_TIMER_CLO_OFFSET]
+        mov     pc, lr
 
 
 

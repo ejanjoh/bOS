@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2015-05-07 (ver 3)
- *      Updated:    
+ *      Updated:    2015-09-08
  *
  *      Project:    bOS/Raspberry Pi (rev rpi_1_model_b)
  *      File name:  hardware_system.h
@@ -12,6 +12,7 @@
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
  *      ver 3       File created
+ *      ver 10      Defines adjusted for a faster context switch
  *
  *
  *      Reference:
@@ -129,13 +130,14 @@
 #define     INTR_DISABLE_BASIC_IRQ_OFFSET           0x22C
 
 #define     INTR_ENABLE_IRQ_1_TIMER_MASK            0x01
+#define     INTR_UART_RX_PEND_MASK                  (1 << 25)
 
 // System Timer (BroadCom BMC2835 ARM Peripherals chapter 12 for details)
 /*
- * NOTE: Timer zero and one are used by the GPU, so avoid using them...
+ * NOTE: Timer zero and two are used by the GPU, so avoid using them...
  *
  *      CO: is used by the GPU as timer tick (100 interrupts/second)
- *      C2: is used for lightweight timers
+ *      C2: is used for lightweight timers by the GPU
  */
 #define     SYSTEM_TIMER_BASE                       0x20003000
 #define     SYSTEM_TIMER_CS_OFFSET                  0x00            // control/status register
@@ -146,11 +148,15 @@
 #define     SYSTEM_TIMER_C2_OFFSET                  0x14            // timer compare 2, see note
 #define     SYSTEM_TIMER_C3_OFFSET                  0x18            // timer compare 3
 
+#define     SYS_TIMER_CS_M0_MASK                    0x1
 #define     SYS_TIMER_CS_M1_MASK                    0x2
+#define     SYS_TIMER_CS_M2_MASK                    0x4
+#define     SYS_TIMER_CS_M3_MASK                    0x8
 
 #define     SYS_TIMER_INIT_DELAY_PAT                1000000
-#define     SYS_TIMER_INTR_INTERVAL_PAT             0x300000
+#define     SYS_TIMER_INTR_INTERVAL_PAT             0x2700          // gives approximately 100 ticks per second
 #define     SYS_TIMER_GPU_DISTURB_PAT               0xF00000
+#define     SYS_TIMER_TICKS_PER_SEC                 1000000         // 1 MHz timer...
 
 // UART (BroadCom BMC2835 ARM Peripherals chapter 13 for details)
 #define     UART_BASE                           0x20201000
