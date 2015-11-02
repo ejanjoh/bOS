@@ -33,6 +33,7 @@
 // Metadata
 #define     ARM32
 #define     ARMv6
+#define     RPI
 #define     ARM_SYS32_MODE_ONLY
 #define     PROCESSOR   ARM1176JZF-S
 #define     BOARD       RASPBERRY_PI_MOD_B

@@ -35,6 +35,7 @@
 // Metadata
 #define     ARM32
 #define     ARMv7
+#define     BBB
 #define     ARM_SYS32_MODE_ONLY
 
 // Access hardware registers, in C only...

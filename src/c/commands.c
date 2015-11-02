@@ -12,13 +12,28 @@
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
  *      ver 10      created
+ *      ver 11      Command "hni <size>" added
  *
  *
  *      Reference: 
  *
  ******************************************************************************/
 
+#include <stdint.h>
+#include "stdlib.h"
 #include "io.h"
+
+void _heap_node_info(uint32_t size);
+
+// cmd - hni <size>  [heap node info <size>]
+void get_heap_node_info(char *str)
+{
+    uint32_t size = atoi(str);
+
+    size = atoi(str);
+    _heap_node_info(size);
+    return;
+}
 
 
 // For test only

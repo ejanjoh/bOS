@@ -12,6 +12,7 @@
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
  *      ver 10      Created
+ *      ver 11      Command "hni <size>" added
  *
  *
  *      Reference:
@@ -55,13 +56,16 @@ typedef struct {
     uint32_t elements;      // The number of token (cmd + arguments) associated to the command
 } cmds_t;
 
+
+extern void get_heap_node_info(char *str);  // cmd - hni <size>  [heap node info <size>]
 extern void cmd0(void);
 extern void cmd1(const char *c);
 extern void cmd2(const char *c1, const char *c2);
 extern void cmd3(const char *c1, const char *c2, const char *c3);
 
 // Contain all valid commands, given from terminal, in the system...
-static cmds_t cmds[] = {{"cmd0", cmd0, 1},              // test only
+static cmds_t cmds[] = {{"hni", get_heap_node_info, 2}, // cmd - hni <size>  [heap node info <size>]
+                        {"cmd0", cmd0, 1},              // test only
                         {"cmd1", cmd1, 2},              // test only
                         {"cmd2", cmd2, 3},              // test only
                         {"cmd3", cmd3, 4}};             // test only
