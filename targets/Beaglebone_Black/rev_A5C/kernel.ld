@@ -3,7 +3,7 @@
 *   Created by:     Jan Johansson (ejanjoh)
 *   Copyright:      Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
 *   Date:           2013-10-11
-*   Updated:        2015-09-23
+*   Updated:        2016-05-12
 *
 *       Project:    bOS/Beaglebone Black (rev A5C)
 *       File name:  kernel.ld
@@ -12,12 +12,13 @@
 *   bOS version history mapped on changes in this file:
 *   ---------------------------------------------------
 *   ver 10          Increased the sys stack and number of processes running
+*   ver 12          Updated to move the execution to level 3 SDRAM
 *
 ******************************************************************************/
 
 /*
  * Note: Some toolchains generate a initial underscore at all labels in the
- * object files and it might cause that it’s not possible to access the labels
+ * object files and it might cause that it's not possible to access the labels
  * in the linker script if not adjusted...
  *
  * However, in this script the following naming convention are used for labels:
@@ -95,29 +96,43 @@
  *
  *
  * (*) Downloaded Image
- *
+ * ====================  
  *   ::start     @ 0x402f0400
  *   .init
  *   (.heap)
  *   .stack
- *      - mode_sys: 16*5*0x400
- *      - mode_und: 0x400
- *      - mode_abt: 0x400
- *      - mode_svc: 0x400
- *      - mode_irq: 0x400
- *      - mode_fiq: 0x400
+ *      - mode_sys: stack_sys_block_size * nbr_sys_proc
+ *      - mode_und: stack_block_size
+ *      - mode_abt: stack_block_size
+ *      - mode_svc: stack_block_size
+ *      - mode_irq: stack_block_size
+ *      - mode_fiq: stack_block_size
  * _CPY_TO_L3_SDRAM_START
  *   .text
  *   .bss
  *   .rodata
  *   .data
  * _CPY_TO_L3_SDRAM_END
+ *
+ * Setup at level 3 SDRAM Ð Created during start of the system
+ * ===========================================================
+ *   .text      // copy from level 1 RAM
+ *   .bss       // copy from level 1 RAM
+ *   .rodata    // copy from level 1 RAM
+ *   .data      // copy from level 1 RAM
+ *   .heap      // created here (heap start, no copy of section...)
+ *
+ *
  */
 
-heap_size               = 0x1000;                       /* heap size */
-stack_block_size        = 0x400;                        /* stack block size */
-stack_sys_block_size    = stack_block_size*5;           /* size of sys stack size per proc */
-nbr_sys_proc            = 16;                           /* the number of sys proc running on the system */
+heap_size               = 0x1000;                   /* heap size Ð minimal but faster heap Ð if needed */
+stack_block_size        = 0x400;                    /* stack block size */
+stack_sys_block_size    = stack_block_size*5;       /* size of sys stack size per proc */
+nbr_sys_proc            = 16;                       /* the number of sys proc running on the system */
+
+_L3_SDRAM_START         = 0x80000000;               /* Start address of DDR3 SDRAM (1 GB) */
+_l3_heap_size           = 1M;                       /* heap size */
+
 
 
 /* constitute the memory layout (memory map) for the system */
@@ -182,7 +197,7 @@ SECTIONS {
        some "high level" initialization not done in the .init section) */
     . = . + 4;              /* add a slack... */
     . = ALIGN(0x4);
-    /*_CPY_TO_L3_SDRAM_START = .;*/
+    _CPY_TO_L3_SDRAM_START = .;
     _text_start = .;
     .text : {
         *(.text.startup)
@@ -220,7 +235,7 @@ SECTIONS {
     }
     _data_end = .;
     
-    /*_CPY_TO_L3_SDRAM_END = .;*/
+    _CPY_TO_L3_SDRAM_END = .;
 
     /* Collect in-sections not trapped above */
     . = . + 4;              /* add a slack... */
@@ -231,5 +246,6 @@ SECTIONS {
 
     _sections_end = .;
 }
+
 
 

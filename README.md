@@ -84,14 +84,17 @@
 > 	- [bOS] Changed e.o.l. characters from "\r\n" to "\n"
 > 	- [Raspberry Pi] UART interrupts enabled to get terminal serial input to the system 
 > 	- [Beaglebone Black] UART interrupts enabled to get terminal serial input to the system 
-> - ver 11: [bOS] added support for dynamic memmory allocation on the heap. 
+> - ver 11:
+> 	- [bOS] added support for dynamic memmory allocation on the heap. (See To Do note about Beaglebone Black)
+> - ver 12: 
+> 	- [Beaglebone Black] Moved point of execution to DDR3 SDRAM (L3 RAM); created a heap on DDR 3 SDRAM and enabled dynamic memory allocation onto that.
 
 
 >## Key Words
-> Assembler, C, ARM, ARMv6, ARMv7, Bare Metal, Operating System (OS), Rasberry Pi (RPI), Beaglebone Black (BBB), Stack, GPIO, Led, Exception Vectors, UART/Serial Communication, Rx/Tx, RHR/THR, Timer, Interrupt, IRQ, SVC/SWI, Context Switch, Scheduler, __aeabi_uidiv, __aeabi_uidivmod, I/O, Semaphore, Mutex, Assert, Process Control Block (PCB), Command Line Interface (CLI), I/O stream buffers, dynamic memmory, heap, alloc/free…
+> Assembler, C, ARM, ARMv6, ARMv7, Bare Metal, Operating System (OS), Rasberry Pi (RPI), Beaglebone Black (BBB), Stack, GPIO, Led, Exception Vectors, UART/Serial Communication, Rx/Tx, RHR/THR, Timer, Interrupt, IRQ, SVC/SWI, Context Switch, Scheduler, __aeabi_uidiv, __aeabi_uidivmod, I/O, Semaphore, Mutex, Assert, Process Control Block (PCB), Command Line Interface (CLI), I/O Stream Buffers, Dynamic Memmory, Heap, alloc/free, L1 RAM, L3 RAM, DDR3 SDRAM…
+
 
 >## To Do
-> - On Beaglebone Black: Public RAM (L1 RAM) is too small to contain the heap. To be in position to run the system with the heap the execution point have to be moved to L3 SDRAM. Until this is done we run without dynamic memoru allocation on heap using the Beaglebone Black. Using the heap or accessing it will most likely crash the system…
 > - Add inter process communication
 > - Add different levels of errors, warnings, debug information etc..
 > - Update information on the system and make a cleanup in the code.

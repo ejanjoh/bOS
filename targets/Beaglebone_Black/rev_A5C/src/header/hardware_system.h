@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2015-05-20 (ver 5)
- *      Updated:    2015-06-27 (ver 7)
+ *      Updated:    2016-05-19 (ver 12)
  *
  *      Project:    bOS/Beaglebone Black (rev A5C)
  *      File name:  hardware_system.h
@@ -14,6 +14,7 @@
  *      ver 5       File created
  *      ver 7       Define endings has been changed
  *                  Added support to handle context switch
+ *      ver 12      Updated to handle DDR3 SDRAM (level 3 RAM)
  *
  *
  *      Reference:
@@ -127,6 +128,8 @@
 #define     LOAD_ADDR_DATA_ABRT_EXC_REG         0x4030CE30      // Jump address data abort
 #define     LOAD_ADDR_IRQ_INTR_REG              0x4030CE38      // Jump address irq
 #define     LOAD_ADDR_FIQ_INTR_REG              0x4030CE3C      // Jump address fiq
+#define     DDR3_SDRAM_START_ADDR               0x80000000      // DDR3 SDRAM 512 M start address
+#define     DDR3_SDRAM_END_ADDR                 0x9FFFFFFF      // DDR3 SDRAM 512 M end address
 
 #define     CPSR_SYSTEM_MODE_MASK               0x1F            // CPSR M[4:0]
 #define     CPSR_IRQ_MASK                       0x80            // Processor Status Register - IRQ bit
@@ -161,10 +164,32 @@
 #define     CM_PER_BASE                         0x44E00000      // Clock Module Peripheral Registers
 #define     CM_WKUP_BASE                        0x44E00400      // Clock Module Wakeup Registers
 #define     CM_DPLL_BASE                        0x44E00500      // Clock Module PLL Registers
+
+#define     CM_PER_L3_CLKSTCTRL_OFFSET          0x0C
+#define     CM_PER_EMIF_CLKCTRL_OFFSET          0x28
 #define     CM_PER_L4LS_CLKCTRL_OFFSET          0x60
 #define     CM_PER_TIMER2_GCLK_OFFSET           0x70
 #define     CM_PER_GPIO1_CLKCTRL_OFFSET         0xAC
+#define     CM_PER_L3_CLKCTRL_OFFSET            0xE0
+
+#define     CM_WKUP_CLKSTCTRL_OFFSET            0x00
+#define     CM_WKUP_GPIO0_CLKCTRL_OFFSET        0x08
+#define     CM_WKUP_IDLEST_DPLL_DDR_OFFSET      0x34
+#define     CM_WKUP_CLKSEL_DPLL_DDR_OFFSET      0x40
+#define     CM_WKUP_IDLEST_DPLL_CORE_OFFSET     0x5C
+#define     CM_WKUP_CLKSEL_DPLL_CORE_OFFSET     0x68
+#define     CM_WKUP_IDLEST_DPLL_PER_OFFSET      0x70
+#define     CM_WKUP_DIV_M4_DPLL_CORE_OFFSET     0x80
+#define     CM_WKUP_DIV_M5_DPLL_CORE_OFFSET     0x84
+#define     CM_WKUP_CLKMODE_DPLL_PER_OFFSET     0x8C
+#define     CM_WKUP_CLKMODE_DPLL_CORE_OFFSET    0x90
+#define     CM_WKUP_CLKMODE_DPLL_DDR_OFFSET     0x94
+#define     CM_WKUP_CLKSEL_DPLL_PER_OFFSET      0x9C
+#define     CM_WKUP_DIV_M2_DPLL_DDR_OFFSET      0xA0
+#define     CM_WKUP_DIV_M2_DPLL_PER_OFFSET      0xAC
 #define     CM_WKUP_UART0_CLKCTRL_OFFSET        0xB4
+#define     CM_WKUP_DIV_M6_DPLL_CORE_OFFSET     0xD8
+
 #define     CM_DPLL_CLKSEL_TIMER2_CLK_OFFSET    0x08
 
 #define     CM_PER_FUNCT_INTRFC_CLCK_MASK       0x40002

@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2015-05-19
- *      Updated:    2015-09-22
+ *      Updated:    2016-05-19
  *
  *      Project:    bOS/Beaglebone Black (rev A5C)
  *      File name:  start.S
@@ -14,6 +14,7 @@
  *      ver 5       File created
  *      ver 7       Added support to handle context switching
  *      ver 10      Corrected an error on UART0 mux mapping
+ *      ver 12      Adopted changes to get level DDR3 SDRAM up and running.
  *
  *      Reference: See hardware_system.h
  *
@@ -144,17 +145,12 @@ _start:
         sub     r2, r2, r0
         lsr     r2, r2, #2
         bl      memset32
+        
+        @ Setup and initiate the PLLs and clocks needed by the system.
+        bl      clock_setup
 
         @ Enable the interface and functional clocks on GPIO_1
-        movw    r0, #:lower16:CM_PER_BASE
-        movt    r0, #:upper16:CM_PER_BASE
-        movw    r1, #:lower16:CM_PER_FUNCT_INTRFC_CLCK_MASK         @ functional and interface clocks
-        movt    r1, #:upper16:CM_PER_FUNCT_INTRFC_CLCK_MASK
-        str     r1, [r0, #CM_PER_GPIO1_CLKCTRL_OFFSET]
-1:
-        ldr     r2, [r0, #CM_PER_GPIO1_CLKCTRL_OFFSET]
-        cmp     r2, r1
-        bne     1b
+        @bl      clock_enable_gpio1     /* moved to clock_setup */
 
         @ Enable GPIOs used by the system
         bl      gpio_enable
@@ -182,14 +178,7 @@ _start:
         str     r1, [r0, #CTRL_MODE_CONF_UART0_TXD_OFFSET]
 
         @  Enable the interface and functional clocks on UART0
-        movw    r0, #:lower16:CM_WKUP_BASE
-        movt    r0, #:upper16:CM_WKUP_BASE
-        mov     r1, #CM_WKUP_FUNCT_INTRFC_CLCK_MASK
-        str     r1, [r0, #CM_WKUP_UART0_CLKCTRL_OFFSET]
-1:
-        ldr     r2, [r0, #CM_WKUP_UART0_CLKCTRL_OFFSET]
-        cmp     r2, r1
-        bne     1b
+        @bl      clock_enable_uart0     /* moved to clock_setup */
 
         @ Set baud rate, data bits etc needed by the UART for serial communication on uart_0
         bl      uart_setup_serial_uart0
@@ -198,8 +187,13 @@ _start:
         bl      setup_default_io_config
         
         @ Set up timer 2 (used for timer interrupt to the context switch)
-        bl      clock_enable_timer2
+        @bl      clock_enable_timer2        /* moved to clock_setup */
         
+        @ Set up and configure the (L3) EMIF - DDR3 SDRAM
+        bl      Config_EMIF_DDR3_SDRAM
+
+        @ Test the SDRAM - performs a linear test on the SDRAM
+        @bl      TestSDRAM
 
         /* At this point one usually do a lot of configurations to optimize the system, to increase the
          * performance and so on. However we relay on that the ROM code is setting up most of the thing 
@@ -208,9 +202,73 @@ _start:
          * system in a somewhat proper way.
          */
 
+        @ Copy .text, .bss, .rodata, .data sections to the L3 SDRAM
+        movw    r0, #:lower16:_CPY_TO_L3_SDRAM_START
+        movt    r0, #:upper16:_CPY_TO_L3_SDRAM_START
+        mov     r1, #DDR3_SDRAM_START_ADDR        
+        movw    r2, #:lower16:_CPY_TO_L3_SDRAM_END
+        movt    r2, #:upper16:_CPY_TO_L3_SDRAM_END
+        sub     r2, r2, r0
+        lsr     r2, r2, #2
+        bl      memcopy32
+
+        @ Test that the first 100 bytes doesn't differ...
+        movw    r0, #:lower16:_CPY_TO_L3_SDRAM_START
+        movt    r0, #:upper16:_CPY_TO_L3_SDRAM_START
+        mov     r1, #DDR3_SDRAM_START_ADDR
+        mov     r2, #100
+        bl      memcmp
+        cmp     r0, #0
+        beq     10f
+        movw    r0, #:lower16:TEXT_1_SDRAM_COPY_ERROR
+        movt    r0, #:upper16:TEXT_1_SDRAM_COPY_ERROR
+        mov     r1, #80
+        bl      _uart_puts
+        b       _deadloop       @ no end...
+10:
+        movw    r0, #:lower16:TEXT_2_SDRAM_COPY_OK
+        movt    r0, #:upper16:TEXT_2_SDRAM_COPY_OK
+        mov     r1, #80
+        bl      _uart_puts
 
         @ Perform other initializations...
         bl      init
+
+        @ Calculate the offset to L3_START_ADDRESS on L3 SDRAM
+        movw    r0, #:lower16:L3_START_ADDRESS
+        movt    r0, #:upper16:L3_START_ADDRESS
+        movw    r1, #:lower16:_CPY_TO_L3_SDRAM_START
+        movt    r1, #:upper16:_CPY_TO_L3_SDRAM_START
+        sub     r0, r0, r1
+
+        /* Move execution to L3_START_ADDRESS to L3 RAM */
+        add     r0, r0, #DDR3_SDRAM_START_ADDR
+        mov     pc, r0
+
+        /*********************************************************************** 
+         * .section .text
+         *
+         **********************************************************************/
+        .section .text
+        .code 32
+        .align 2
+        .global L3_START_ADDRESS
+L3_START_ADDRESS:
+
+        @ We now run in DDR3 SDRAM address range
+        add     r10, pc, #-0x8                          @ r10 = current address
+
+        @ Notify the world about the move of execution point...
+        movw    r0, #:lower16:TEXT_3_EXECUTION_MOVE
+        movt    r0, #:upper16:TEXT_3_EXECUTION_MOVE
+        mov     r1, #80
+        bl      _uart_puts
+        mov     r0, r10
+        bl      _uart_put_hex32
+        mov     r0, #'\n'
+        bl      _uart_putc
+        mov     r0, #'\r'
+        bl      _uart_putc
 
         @ Enable IRQ on MPU
         mrs     r4, cpsr
@@ -260,47 +318,6 @@ _deadloop:
         b       10b
 
 
-        /***********************************************************************
-         * clock_enable_timer2
-         *
-         * Enable the interface and functional clocks needed by Timer2 and set
-         * the clock for a proper timer resolution (41.66 ns per tick, 24 MHz).
-         *
-         * C prototype: void clock_enable_timer2(void)
-         **********************************************************************/
-        .section .text
-        .code 32
-        .align 2
-        .global clock_enable_timer2
-clock_enable_timer2:
-
-        @ set up the clock source to timer 2 (source: CLK_M_OSC, 24 MHz)
-        movw    r0, #:lower16:CM_DPLL_BASE
-        movt    r0, #:upper16:CM_DPLL_BASE
-        mov     r1, #CM_DPLL_CLKSEL_TIMER2_CLK_CLKSEL_CLK_M_OSC_MASK        @ CLK_M_OSC = 24 MHz
-        str     r1, [r0, #CM_DPLL_CLKSEL_TIMER2_CLK_OFFSET]
-
-        movw    r0, #:lower16:CM_PER_BASE
-        movt    r0, #:upper16:CM_PER_BASE
-        mov     r1, #CM_PER_CLKCTRL_ENABLE_MASK
-        
-        @ interface clock (CM_PER_L4LS_GCLKCTRL_OFFSET)
-        str     r1, [r0, #CM_PER_L4LS_CLKCTRL_OFFSET]
-10:
-        ldr     r2, [r0, #CM_PER_L4LS_CLKCTRL_OFFSET]
-        cmp     r2, r1
-        bne     10b
-
-        @ functional clock (CM_PER_TIMER2_GCLK_OFFSET)
-        str     r1, [r0, #CM_PER_TIMER2_GCLK_OFFSET]
-20:
-        ldr     r2, [r0, #CM_PER_TIMER2_GCLK_OFFSET]
-        cmp     r2, r1
-        bne     20b
-        
-        mov     pc, lr
-
-
         /*********************************************************************** 
          * _get_stack_ptr(void)
          *
@@ -315,4 +332,24 @@ clock_enable_timer2:
 _get_stack_ptr:
         mov     r0, sp
         mov     pc, lr
+
+
+        /*********************************************************************** 
+         * .section .rodata
+         *
+         **********************************************************************/
+        .section .rodata
+        .align 2
+TEXT_1_SDRAM_COPY_ERROR:
+        .asciz "Error - the copied value to DDR3 RAM is not identical to original...\n\r"
+        .align 2
+TEXT_2_SDRAM_COPY_OK:
+        .asciz ".text, .bss, .rodata and .data sections successfully copied to the DDR3 SDRAM\n\r"
+        .align 2
+TEXT_3_EXECUTION_MOVE:
+        .asciz "Point of execution moved to: "
+        .align 2
+
+
+
 

@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2011-11-07 (DynamicMemory.c)
- *      Updated:    2015-10-15 (dyn_mem.c)
+ *      Updated:    2016-05-19 (dyn_mem.c)
  *
  *      Project:    bOS
  *      File name:  dyn_mem.c
@@ -12,6 +12,7 @@
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
  *      ver 11      Updated
+ *      ver 12      Cosmetic change
  *
  *
  *      Reference:
@@ -121,7 +122,7 @@ void init_dyn_mem(void *p, uint32_t size)
         }
     }
 
-    _printf(200, "Dynamic memory on the heap configured.\n   Start at: %p, size used: %x, size allocated: %x\n\n", 
+    _printf(200, "Dynamic memory on the heap configured.\n   start at: %p\n   size used: %x\n   size allocated: %x\n\n", 
             p, calc_heap_size(), size);
     return;
 }

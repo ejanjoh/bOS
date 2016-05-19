@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2013-11-08
- *      Updated:    2015-07-23
+ *      Updated:    20156-05-19
  *
  *      Project:    bOS/Beaglebone Black (rev A5C)
  *      File name:  uart_asm.S
@@ -14,6 +14,7 @@
  *      ver 5       File copied and updated
  *      ver 9       Protected the UART0 used for serial communication with a 
  *                  mutex.
+ *      ver 12      Added _uart_put_hex32
  *
  *      Reference: See hardware_system.h
  *
@@ -279,5 +280,30 @@ uart_setup_serial_uart0:
         ldmfd   sp!, {r7-r9, pc}
 
 
+         /*********************************************************************** 
+         * _uart_put_hex32
+         *
+         * Prints out an integer on hexadecimal form on uart. 
+         *
+         * C prototype: void _uart_put_hex32(uint32_t hex)
+         **********************************************************************/
+        .section .text
+        .code 32
+        .align 2
+        .global _uart_put_hex32
+_uart_put_hex32:
+
+        stmfd   sp!, {fp, lr}
+
+        sub     fp, lr, #16         /* 11 bytes will be used... */
+        mov     r1, fp
+        bl      itoa32_hex
+
+        mov     r0, fp
+        mov     r1, #11
+        bl      _uart_puts
+
+        add     lr, fp, #16
+        ldmfd   sp!, {fp, pc}
 
 

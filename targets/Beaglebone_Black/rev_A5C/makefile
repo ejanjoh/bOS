@@ -61,7 +61,7 @@ OBJ                 += $(patsubst $(C_FILES_GEN)%.c,$(BUILD_FILES)%.o,$(wildcard
 DEPENDFLAGS         :=
 INCLUDES            := -I $(HEADER_FILES_HW_DEP)
 INCLUDES            += -I $(HEADER_FILES_GEN)
-BASEFLAGS          := -O2 -nostdlib -pedantic -pedantic-errors
+BASEFLAGS           := -O2 -nostdlib -pedantic -pedantic-errors
 #BASEFLAGS           := -nostdlib                                   <--- No
 BASEFLAGS           += -nostartfiles -ffreestanding -nodefaultlibs
 BASEFLAGS           += -fno-builtin -fomit-frame-pointer -mcpu=cortex-a8

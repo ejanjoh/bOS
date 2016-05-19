@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2015-09-01
- *      Updated:    
+ *      Updated:    2016-05-18
  *
  *      Project:    bOS
  *      File name:  misc.c
@@ -11,7 +11,8 @@
  *
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
- *      ver 10      created
+ *      ver 10      Created
+ *      ver 12      Added memcmp(...)
  *
  *
  *      Reference: 
@@ -45,6 +46,33 @@ int32_t strncmp(const char *str1, const char *str2, uint32_t len)
 
         if ('\0' == *str1 && '\0' == *str2) {
             break;
+        }
+
+        str1++;
+        str2++;
+        len--;
+    }
+
+    return 0;
+}
+
+
+int32_t memcmp(const void *ptr1, const void *ptr2, uint32_t len)
+{
+    const char *str1 = (const char *)ptr1;
+    const char *str2 = (const char *)ptr2;
+
+    ASSERT(NULL != str1);
+    ASSERT(NULL != str2);
+    ASSERT(len > 0);
+
+    while (0 < len) {
+
+        if (*str1 > *str2) {
+            return 1;
+        }
+        else if (*str1 < *str2) {
+            return -1;
         }
 
         str1++;

@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2015-05-09
- *      Updated:    2015-05-20
+ *      Updated:    2016-05-18
  *
  *      Project:    bOS/bOS/Beaglebone Black (rev A5C)
  *      File name:  misc_asm.S
@@ -15,6 +15,7 @@
  *      ver 5       __aeabi_uidiv added
  *                  Copied to BBB
  *      ver 11      Added the modulo function __aeabi_uidivmod
+ *      ver 12      Added memcopy32, itoa32_hex
  *
  *      Reference: See hardware_system.h
  *
@@ -60,7 +61,53 @@ memset32:
 
 0:
     ldmfd   sp!, {r4-r9, pc}
- 
+
+
+        /*********************************************************************** 
+         * memcopy32
+         *
+         * Copies the values of the number of words from the location pointed by
+         * the source directly to the memory block pointed by destination.
+         *
+         * C prototype: void memcopy32(void *pSource,
+         *                             void *pDest,
+         *                             uint32_t words)
+         *
+         **********************************************************************/
+        .section .text
+        .code 32
+        .align 2
+        .global memcopy32
+memcopy32:
+
+        src     .req r0             /* pointer to the source */
+        dest    .req r1             /* pointer to the destination */
+        wrds    .req r2             /* number of words to be copied */
+
+        stmfd   sp!, {r4-r11, lr}
+
+8:
+        cmp     wrds, #7
+        bls     1f
+        ldmia   src!, {r4-r11}
+        stmia   dest!, {r4-r11}
+        sub     wrds, wrds, #8
+        b       8b
+
+1:
+        cmp     wrds, #0
+        beq     0f
+        ldmia   src!, {r4}
+        stmia   dest!, {r4}
+        sub     wrds, wrds, #1
+        b       1b
+
+0:
+        ldmfd   sp!, {r4-r11, pc}
+        .unreq src
+        .unreq dest
+        .unreq wrds
+
 
         /*********************************************************************** 
          * __aeabi_uidiv
@@ -249,6 +296,65 @@ __aeabi_uidivmod:
 
         ldmfd   sp!, {r4, pc}
 
+        /*********************************************************************** 
+         * itoa32_hex
+         *
+         * Convert an integer value to a null-terminated string with the base
+         * 16. The hexadicimal part is written as capital letters. A result
+         * would be on the form 0x00FF00FF. All 32 bites are included even if 
+         * they are zeros and all result consist of 11 chars (bytes) included 
+         * the null-termination. No error correction exists.
+         *
+         * C prototype: void itoa32_hex(uint32_t val, char *str) 
+         **********************************************************************/
+        .section .text
+        .code 32
+        .align 2
+        .global itoa32_hex
+itoa32_hex:
 
+        int     .req r0             /* integer value (int) */
+        ptr     .req r1             /* pointer to string (ptr) */
+        chr     .req r2             /* character (chr) */
+        cnt     .req r3             /* counter (cnt) */
+
+        mov     chr, #'0'
+        strb    chr, [ptr]
+        mov     chr, #'x'
+        strb    chr, [ptr, #1]!
+        mov     cnt, #0
+
+1:
+        mov     chr, int
+        lsr     chr, chr, #28
+        cmp     chr, #9
+        bhi     3f
+
+2:      /* digit in range [0, 9] */
+        add     chr, chr, #48
+        b       4f
+
+3:      /* digit in range [A, F] */
+        add     chr, chr, #('A' - 10)
+
+4:
+        strb    chr, [ptr, #1]!
+        lsl     int, int, #4
+        add     cnt, cnt, #1
+
+        cmp     cnt, #8
+        beq     10f
+        b       1b
+
+10:
+        mov     chr, #0
+        strb    chr, [ptr, #1]!
+
+        .unreq  int
+        .unreq  ptr
+        .unreq  chr
+        .unreq  cnt
+
+        mov     pc, lr
 
 
