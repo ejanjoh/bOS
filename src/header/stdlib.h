@@ -12,6 +12,7 @@
  *      bOS version history mapped on changes in this file:
  *      ---------------------------------------------------
  *      ver 11      Updated
+ *      ver 13      Changed the definition of free
  *
  *
  *      Reference:  ...
@@ -97,12 +98,12 @@ void init_dyn_mem(void *p, uint32_t size);
 
 #ifdef HEAP_DBG
 #define free(p)                                                                                                 \
-    free_no_std(&(p));                                                                                          \
+    free_no_std((void **) &(p));                                                                                          \
     do {                                                                                                        \
         printf(100, "HEAP_DBG: Memory block pointed out by %p released. (%s, %u)\n", (p), __FILE__, __LINE__);  \
     } while (0)
 #else
-#define free(p) free_no_std(&(p))
+#define free(p) free_no_std((void **) &(p))
 #endif /* HEAP_DBG */
 
 

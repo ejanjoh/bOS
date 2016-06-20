@@ -13,6 +13,7 @@
  *      ---------------------------------------------------
  *      ver 10      Created
  *      ver 11      Command "hni <size>" added
+ *      ver 13      Added notifications on process starts
  *
  *
  *      Reference:
@@ -213,7 +214,13 @@ void cli_io_in_proc(void)
 {
     char line[IO_IN_BUFFER_SIZE];
     tokens_t tokens;
+    int32_t check;
 
+
+    check = _printf(100, "PID %u: process %s has started...\n",
+            proc_ctrl_get_curr_pid(), 
+            proc_ctrl_get_curr_proc_name());
+    ASSERT(0 < check);
     
     while (1) {
         if (_io_buffer_get_lines(&io_in)) {
@@ -237,7 +244,13 @@ void cli_io_in_proc(void)
 void cli_io_out_proc(void)
 {
     char line[IO_OUT_BUFFER_SIZE];
+    int32_t check;
 
+
+    check = _printf(100, "PID %u: process %s has started...\n",
+            proc_ctrl_get_curr_pid(), 
+            proc_ctrl_get_curr_proc_name());
+    ASSERT(0 < check);
 
     while (1) {
         if (_io_buffer_get_lines(&io_out)) {

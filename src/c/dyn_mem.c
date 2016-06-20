@@ -13,6 +13,9 @@
  *      ---------------------------------------------------
  *      ver 11      Updated
  *      ver 12      Cosmetic change
+ *      ver 13      Changed a modulo operation to increase performance and
+ *                  added some extra 8 word sized buffers needed by the message 
+ *                  handling:
  *
  *
  *      Reference:
@@ -49,7 +52,7 @@ static heapnode_t hTable[] = \
  {   1,      4,   5,   5,   0,   0,   NULL,   NULL,   NULL,   NULL},  // 1 words
  {   2,      8,   5,   5,   0,   0,   NULL,   NULL,   NULL,   NULL},  // 2 words
  {   3,     16,   5,   5,   0,   0,   NULL,   NULL,   NULL,   NULL},  // 4 words
- {   4,     32,   5,   5,   0,   0,   NULL,   NULL,   NULL,   NULL},  // etc
+ {   4,     32, 100, 100,   0,   0,   NULL,   NULL,   NULL,   NULL},  // etc
  {   5,     64,   5,   5,   0,   0,   NULL,   NULL,   NULL,   NULL},
  {   6,    128,   5,   5,   0,   0,   NULL,   NULL,   NULL,   NULL},
  {   7,    256,   5,   5,   0,   0,   NULL,   NULL,   NULL,   NULL},
@@ -81,6 +84,7 @@ static uint32_t getnode_ptr(void *p);
 static uint32_t isbufferfree(const void *p, const uint32_t node);
 static void *getbuffer(uint32_t node);
 static uint32_t freebuffer(uint32_t node, void *p);
+static uint32_t modulo_2n(uint32_t a, uint32_t n);
 
 
 void init_dyn_mem(void *p, uint32_t size)
@@ -206,7 +210,8 @@ static uint32_t getnode_ptr(void *p)
 
             // check that it's a correct buffer returned
             check = (uint32_t) p - (uint32_t) (hTable + node)->pBufferLowAddr;
-            if ( check % (hTable + node)->bufferSize ) {
+            //if ( (check % ((hTable + node)->bufferSize ))){
+            if ( modulo_2n(check, (hTable + node)->bufferSize)  ) {
                 printf(100, "Warning: (1) pointer is not a correct heap buffer pointer, and can not be returned...\n");
                 ASSERT(0);
                 return LOW_NODE;
@@ -341,3 +346,11 @@ void _heap_node_info(uint32_t size)
 
     return;
 }
+
+// if the divisor is on the form 2^n the modulo function become very easy...
+static uint32_t modulo_2n(uint32_t a, uint32_t n)
+{
+    return (a & (n - 1));
+}
+
+

@@ -88,14 +88,15 @@
 > 	- [bOS] added support for dynamic memmory allocation on the heap. (See To Do note about Beaglebone Black)
 > - ver 12: 
 > 	- [Beaglebone Black] Moved point of execution to DDR3 SDRAM (L3 RAM); created a heap on DDR 3 SDRAM and enabled dynamic memory allocation onto that.
+> - ver 13:
+> 	- [bOS] IPC by messages added.
 
 
 >## Key Words
-> Assembler, C, ARM, ARMv6, ARMv7, Bare Metal, Operating System (OS), Rasberry Pi (RPI), Beaglebone Black (BBB), Stack, GPIO, Led, Exception Vectors, UART/Serial Communication, Rx/Tx, RHR/THR, Timer, Interrupt, IRQ, SVC/SWI, Context Switch, Scheduler, __aeabi_uidiv, __aeabi_uidivmod, I/O, Semaphore, Mutex, Assert, Process Control Block (PCB), Command Line Interface (CLI), I/O Stream Buffers, Dynamic Memmory, Heap, alloc/free, L1 RAM, L3 RAM, DDR3 SDRAM…
+> Assembler, C, ARM, ARMv6, ARMv7, Bare Metal, Operating System (OS), Rasberry Pi (RPI), Beaglebone Black (BBB), Stack, GPIO, Led, Exception Vectors, UART/Serial Communication, Rx/Tx, RHR/THR, Timer, Interrupt, IRQ, SVC/SWI, Context Switch, Scheduler, __aeabi_uidiv, __aeabi_uidivmod, I/O, Semaphore, Mutex, Assert, Process Control Block (PCB), Command Line Interface (CLI), I/O Stream Buffers, Dynamic Memmory, Heap, alloc/free, L1 RAM, L3 RAM, DDR3 SDRAM, IPC…
 
 
 >## To Do
-> - Add inter process communication
 > - Add different levels of errors, warnings, debug information etc..
 > - Update information on the system and make a cleanup in the code.
 

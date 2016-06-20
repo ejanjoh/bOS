@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2013-07-13
- *      Updated:    2015-06-03
+ *      Updated:    2016-06-15
  *
  *      Project:    bOS
  *      File name:  process_control.c
@@ -16,6 +16,7 @@
  *      ver 9       Added methods for a processes to hand over to an other 
  *                  process. Added methods for processes to enable and disable 
  *                  interrupts
+ *      ver 13      Secured a critical region
  *
  *
  *      Reference: See hardware_system.h
@@ -27,6 +28,7 @@
 #include "assert.h"
 #include "io.h"
 #include "sys_def.h"
+#include "message.h"        // test only
 
 extern int32_t _printf(const uint32_t len, const char *format, ...);
 
@@ -207,12 +209,36 @@ void proc_ctrl_change_state(const uint32_t pid, const procState_t newState)
     ASSERT(running != p->state);                        // don't change state on the running process,
                                                         // use proc_ctrl_context_switch(...) if it's the current proc.
     // critical section starts
+    DISABLE_INTERRUPT;
     p->state = newState;
+    ENABLE_INTERRUPT;
     // critical section ends
 
     return;
 }
 
+
+/* This function should used with care, the critical regions are not protected 
+   and this must be handled elseware; if not use the function
+   "proc_ctrl_change_state" instead. */
+void _proc_ctrl_change_state(const uint32_t pid, const procState_t newState)
+{
+    pcb_t *p = pcbList + pid;
+    
+    if (running == p->state && ready == newState) return;
+
+    ASSERT(running < newState);                         // only accept ready and different versions of blocked
+    ASSERT(HIGH_PID >= pid);                            // the process must exist
+    ASSERT(0 != pid);                                   // don't change state on the idle process
+    ASSERT(!(ready == p->state && newState != ready));  // don't change processes that are in ready state
+    ASSERT(running != p->state);                        // don't change state on the running process,
+                                                        // use proc_ctrl_context_switch(...) if it's the current proc.
+    // critical section starts
+    p->state = newState;
+    // critical section ends
+
+    return;
+}
 
 
 /*
@@ -371,14 +397,31 @@ uint32_t run = 0;
 
 void procA(void)
 {
-    puts("Test procA started...\n", 100);
+    uint32_t pid = proc_ctrl_get_curr_pid();
+    message_t *msg = NULL;
     
-    while (1) ;/*{
-        show_process_statistic();
-        proc_ctrl_context_switch(ready);
-        if (0 == run) run = 1;
-        else run = 0;
-    }*/
+
+    printf(100, "PID %u: process %s has started...\n", proc_ctrl_get_curr_pid(), proc_ctrl_get_curr_proc_name());
+  
+    // send some messages to myself and to my friends
+    msg = msg_create(3, msg_ping, NULL);    // procA
+    msg_send(msg);
+    msg = msg_create(4, msg_ping, NULL);    // procB
+    msg_send(msg);
+    msg = msg_create(5, msg_ping, NULL);    // procC
+    msg_send(msg);
+    msg = msg_create(6, msg_ping, NULL);    // procD
+    msg_send(msg);
+
+    while (1) {
+        // fall into sleep if no messages are to be found in the que..
+        msg_sleep();
+        msg = msg_receive();
+        if (NULL != msg && msg_ping == msg_get_id(msg)) {
+            printf(100, "Process with PID %u received a PING from process %u...\n", pid, msg_get_sender(msg));
+            msg_delete(msg);
+        }
+    }
 
     return;
 }
@@ -386,14 +429,31 @@ void procA(void)
 
 void procB(void)
 {
-    puts("Test procB started...\n", 100);
-    
-    while (1) ;/*{
-        show_process_statistic();
-        if (run) {
-            proc_ctrl_context_switch(ready);
+    uint32_t pid = proc_ctrl_get_curr_pid();
+    message_t *msg = NULL;
+
+
+    printf(100, "PID %u: process %s has started...\n", proc_ctrl_get_curr_pid(), proc_ctrl_get_curr_proc_name());
+
+    // send some messages to myself and to my friends
+    msg = msg_create(3, msg_ping, NULL);    // procA
+    msg_send(msg);
+    msg = msg_create(4, msg_ping, NULL);    // procB
+    msg_send(msg);
+    msg = msg_create(5, msg_ping, NULL);    // procC
+    msg_send(msg);
+    msg = msg_create(6, msg_ping, NULL);    // procD
+    msg_send(msg);
+
+    while (1) {
+        // fall into sleep if no messages are to be found in the que..
+        msg_sleep();
+        msg = msg_receive();
+        if (NULL != msg && msg_ping == msg_get_id(msg)) {
+            printf(100, "Process with PID %u received a PING from process %u...\n", pid, msg_get_sender(msg));
+            msg_delete(msg);
         }
-    }*/
+    }
 
     return;
 }
@@ -401,12 +461,31 @@ void procB(void)
 
 void procC(void)
 {
-    puts("Test procC started...\n", 100);
-    
-    while (1) ;/*{
-        show_process_statistic();
-        //proc_ctrl_context_switch(ready);
-    }*/
+    uint32_t pid = proc_ctrl_get_curr_pid();
+    message_t *msg = NULL;
+
+
+    printf(100, "PID %u: process %s has started...\n", proc_ctrl_get_curr_pid(), proc_ctrl_get_curr_proc_name());
+
+    // send some messages to myself and to my friends
+    msg = msg_create(3, msg_ping, NULL);    // procA
+    msg_send(msg);
+    msg = msg_create(4, msg_ping, NULL);    // procB
+    msg_send(msg);
+    msg = msg_create(5, msg_ping, NULL);    // procC
+    msg_send(msg);
+    msg = msg_create(6, msg_ping, NULL);    // procD
+    msg_send(msg);
+
+    while (1) {
+        // fall into sleep if no messages are to be found in the que..
+        msg_sleep();
+        msg = msg_receive();
+        if (NULL != msg && msg_ping == msg_get_id(msg)) {
+            printf(100, "Process with PID %u received a PING from process %u...\n", pid, msg_get_sender(msg));
+            msg_delete(msg);
+        }
+    }
 
     return;
 }
@@ -414,20 +493,30 @@ void procC(void)
 
 void procD(void)
 {
-    uint32_t cnt, next;
+    uint32_t pid = proc_ctrl_get_curr_pid();
+    message_t *msg = NULL;
     
     
-    puts("Test procD started...\n", 100);
-    cnt = next = 0;
-    
-    while (1) {
-        if (next == cnt++) {
-            printf(100, "%u\n", next);
-            next += 100;
-        }
+    printf(100, "PID %u: process %s has started...\n", proc_ctrl_get_curr_pid(), proc_ctrl_get_curr_proc_name());
 
-        //show_process_statistic();
-        proc_ctrl_context_switch(ready);
+    // send some messages to myself and to my friends
+    msg = msg_create(3, msg_ping, NULL);    // procA
+    msg_send(msg);
+    msg = msg_create(4, msg_ping, NULL);    // procB
+    msg_send(msg);
+    msg = msg_create(5, msg_ping, NULL);    // procC
+    msg_send(msg);
+    msg = msg_create(6, msg_ping, NULL);    // procD
+    msg_send(msg);
+
+    while (1) {
+        // fall into sleep if no messages are to be found in the que..
+        msg_sleep();
+        msg = msg_receive();
+        if (NULL != msg && msg_ping == msg_get_id(msg)) {
+            printf(100, "Process with PID %u received a PING from process %u...\n", pid, msg_get_sender(msg));
+            msg_delete(msg);
+        }
     } 
 
     return;

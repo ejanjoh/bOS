@@ -15,6 +15,7 @@
  *      ver 7       Added support to handle context switching
  *      ver 10      Corrected an error on UART0 mux mapping
  *      ver 12      Adopted changes to get level DDR3 SDRAM up and running.
+ *      ver 13      Fixed a typo...
  *
  *      Reference: See hardware_system.h
  *
@@ -43,7 +44,7 @@
 _start:
         add     r10, pc, #-0x8                  @ r10 = current load address
         
-        /* User the memory area reserved for the heap as a temporary stack while 
+        /* Use the memory area reserved for the heap as a temporary stack while 
          * the real stack is filled with watermarks (supervisor mode)*/
         movw    sp, #:lower16:__heap_end
         movt    sp, #:upper16:__heap_end

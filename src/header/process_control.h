@@ -17,6 +17,8 @@
  *                  process. Added methods for processes to enable and disable 
  *                  interrupts
  *      ver 10      Adjusted for new processes created.
+ *      ver 13      Added process state for blocked process due to no 
+ *                  messages in the que.
  *
  *
  *      Reference: See hardware_system.h
@@ -70,7 +72,7 @@ extern int32_t gDisableInterruptCount;
  * ready   --> running
  * blocked --> ready
  */
-typedef enum {created = 0, running, ready, blocked_semaphore, blocked} procState_t;
+typedef enum {created = 0, running, ready, blocked_semaphore, blocked_msg, blocked} procState_t;
 
 /* Process prio - type definition
  *

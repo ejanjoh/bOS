@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2013-06-20
- *      Updated:    2015-09-08
+ *      Updated:    2016-06-16
  *
  *      Project:    bOS/Raspberry Pi (rev rpi_1_model_b)
  *      File name:  exceptions_asm.S
@@ -18,6 +18,7 @@
  *      ver 10      Enabled UART Rx interrupts and adjusted for handling 
  *                  I/O buffers.
  *                  Updated handling of unknown exceptions.
+ *      ver 13      Updated due to a change in process_control.c
  *
  *
  *      Reference: See hardware_system.h
@@ -317,7 +318,7 @@ _irq_handl:
         @ set the io_in_process in ready state, there is a new line to process...
         mov     r0, #PID_CLI_IO_IN
         mov     r1, #2                      @ state ready = 2...
-        bl      proc_ctrl_change_state
+        bl      _proc_ctrl_change_state
 
         mov     r0, #'\n'
         blx     r5

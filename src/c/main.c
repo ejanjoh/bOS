@@ -16,6 +16,7 @@
  *      ver 11      Added configuration on the heap
  *      ver 12      Added the heap and dynamic memory allocation 
  *                  on Beaglebone Black
+ *      ver 13      Enabled IPC by messages
  *
  *
  *      Reference: See hardware_system.h
@@ -27,6 +28,7 @@
 #include "log.h"
 #include "assert.h"
 #include "process_control.h"
+#include "message.h"
 
 
 extern uint32_t _init_start;
@@ -63,8 +65,8 @@ void main(void)
      * add something...
      */
     
-    puts("Standard out configured...\n", 100);
-    puts("Standard in configured...\n\n", 100);
+    _puts("Standard out configured...\n", 100);
+    _puts("Standard in configured...\n\n", 100);
     print_memory_layout();
 
     // Enable dynamic memory allocation on the heap
@@ -73,6 +75,9 @@ void main(void)
 #else
     init_dyn_mem((void *) &_heap_start, ((uint32_t) &_heap_end) - ((uint32_t)&_heap_start));
 #endif
+
+    // Enable inter process communication using messages between processes
+    msg_init();
 
     // Start all other processes - after this, this process, the idle process will have
     // the lowest priority and will only run if no one else would like too...

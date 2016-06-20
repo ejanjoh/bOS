@@ -3,7 +3,7 @@
  *      Autor:      Jan Johansson (ejanjoh)
  *      Copyright:  Copyright (c) Jan Johansson (ejanjoh). All rights reserved.
  *      Created:    2015-06-25
- *      Updated:    2015-09-24
+ *      Updated:    2016-06-16
  *
  *      Project:    bOS/Beaglebone Black (rev A5C)
  *      File name:  exceptions_asm.S
@@ -15,6 +15,7 @@
  *      ver 9       Added methods for a processes to hand over to an other 
  *                  process
  *      ver 10      Added UART0 Rx interrupt
+ *      ver 13      Updated due to a change in process_control.c
  *
  *      Reference: See hardware_system.h
  *
@@ -190,7 +191,7 @@ irq_handl:
         @ set the io_in_process in ready state, there is a new line to process...
         mov     r0, #PID_CLI_IO_IN
         mov     r1, #2              @ state ready = 2...
-        bl      proc_ctrl_change_state
+        bl      _proc_ctrl_change_state
 
         mov     r0, #'\n'
         blx     r5                  @ _putc
